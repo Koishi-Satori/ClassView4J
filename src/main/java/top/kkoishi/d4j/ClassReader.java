@@ -16,6 +16,9 @@ import top.kkoishi.d4j.attr.ModuleAttribute;
 import top.kkoishi.d4j.attr.ModuleMainClassAttribute;
 import top.kkoishi.d4j.attr.ModulePackagesAttribute;
 import top.kkoishi.d4j.attr.NestHostAttribute;
+import top.kkoishi.d4j.attr.NestMembersAttribute;
+import top.kkoishi.d4j.attr.PermittedSubclassesAttribute;
+import top.kkoishi.d4j.attr.RecordAttribute;
 import top.kkoishi.d4j.attr.RuntimeAnnotationAttribute;
 import top.kkoishi.d4j.attr.RuntimeInvisibleParameterAnnotationsAttribute;
 import top.kkoishi.d4j.attr.RuntimeTypeAnnotationAttribute;
@@ -162,6 +165,22 @@ public class ClassReader {
         return fieldTable;
     }
 
+    public int getMethodsCount () {
+        return methodsCount;
+    }
+
+    public ArrayList<MethodInfo> getMethodTable () {
+        return methodTable;
+    }
+
+    public int getClassFileAttributesCount () {
+        return classFileAttributesCount;
+    }
+
+    public ArrayList<AttributeInfo> getClassFileAttributeTable () {
+        return classFileAttributeTable;
+    }
+
     public void read () throws DecompilerException {
         readFileInfo();
         readCpInfo();
@@ -170,7 +189,7 @@ public class ClassReader {
         readInterfaces();
         readFields();
         readMethods();
-        //readClassFileAttributes();
+        readClassFileAttributes();
     }
 
     public static int toInt (byte[] arr) {
@@ -243,6 +262,8 @@ public class ClassReader {
                     .append(Arrays.deepToString(methodInfo.getAttributes()));
             System.out.println(sb.append('}'));
         }
+        System.out.println("Extended Attribute Table:" + cr.classFileAttributesCount);
+        cr.classFileAttributeTable.forEach(System.out::println);
     }
 
     protected void readMethods () throws IllegalAttributeNameException, IllegalRuntimeAnnotationAttributeElementValueTagByteException {
@@ -369,13 +390,13 @@ public class ClassReader {
                 case "RuntimeVisibleTypeAnnotations": {
                     final int numAnnotations = toInt(br.read(2));
                     attributes[i] = new RuntimeTypeAnnotationAttribute.RuntimeVisibleTypeAnnotationsAttribute(attributeNameIndex,
-                            attributeLength, numAnnotations, readTypeAnnotations(numAnnotations));
+                            attributeLength, numAnnotations, readMethodTypeAnnotations(numAnnotations));
                     break;
                 }
                 case "RuntimeInvisibleTypeAnnotations": {
                     final int numAnnotations = toInt(br.read(2));
                     attributes[i] = new RuntimeTypeAnnotationAttribute.RuntimeInvisibleTypeAnnotationsAttribute(attributeNameIndex,
-                            attributeLength, numAnnotations, readTypeAnnotations(numAnnotations));
+                            attributeLength, numAnnotations, readMethodTypeAnnotations(numAnnotations));
                     break;
                 }
                 default: {
@@ -398,18 +419,146 @@ public class ClassReader {
         return codeExceptionTable;
     }
 
-    protected RuntimeTypeAnnotationAttribute.TypeAnnotation[] readTypeAnnotations (int count) throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation[] readFieldInfoAndRecordTypeAnnotations (int count)
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
         if (count == 0) {
             return new RuntimeTypeAnnotationAttribute.TypeAnnotation[0];
         }
         final RuntimeTypeAnnotationAttribute.TypeAnnotation[] typeAnnotations = new RuntimeTypeAnnotationAttribute.TypeAnnotation[count];
         for (int i = 0; i < count; i++) {
-            typeAnnotations[i] = readTypeAnnotation();
+            typeAnnotations[i] = readFieldInfoAndRecordTypeAnnotation();
         }
         return typeAnnotations;
     }
 
-    protected RuntimeTypeAnnotationAttribute.TypeAnnotation readTypeAnnotation () throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation readFieldInfoAndRecordTypeAnnotation ()
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        final byte tag = br.read();
+        final int pathsLength;
+        final int numElementValuePairs;
+        return new RuntimeTypeAnnotationAttribute.TypeAnnotation(tag, readFieldRecordTargetInfo(tag),
+                new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetPath((pathsLength = toInt(br.read(2))), readPaths(pathsLength)),
+                toInt(br.read(2)),
+                (numElementValuePairs = toInt(br.read(2))),
+                readElementValuePairs(numElementValuePairs));
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo readFieldRecordTargetInfo (byte tag) {
+        if (tag != RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_DECLARE_FIELD_RECORD) {
+            throw new IllegalArgumentException("");
+        }
+        return new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.EmptyTarget();
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation[] readCodeTypeAnnotations (int count) throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        if (count == 0) {
+            return new RuntimeTypeAnnotationAttribute.TypeAnnotation[0];
+        }
+        final RuntimeTypeAnnotationAttribute.TypeAnnotation[] typeAnnotations = new RuntimeTypeAnnotationAttribute.TypeAnnotation[count];
+        for (int i = 0; i < count; i++) {
+            typeAnnotations[i] = readCodeTypeAnnotation();
+        }
+        return typeAnnotations;
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation readCodeTypeAnnotation ()
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        final byte tag = br.read();
+        final int pathsLength;
+        final int numElementValuePairs;
+        return new RuntimeTypeAnnotationAttribute.TypeAnnotation(tag, readCodeTargetInfo(tag),
+                new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetPath((pathsLength = toInt(br.read(2))), readPaths(pathsLength)),
+                toInt(br.read(2)),
+                (numElementValuePairs = toInt(br.read(2))),
+                readElementValuePairs(numElementValuePairs));
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo readCodeTargetInfo (byte tag) {
+        if (tag >= RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_DECLARE_LOCAL_VAR
+                && tag <= RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_ARGUMENT_REFERENCE_METHOD) {
+            return switch (tag) {
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_DECLARE_LOCAL_VAR:
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_DECLARE_RESOURCE_VAR: {
+                    final int length = toInt(br.read(2));
+                    final RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.LocalVarTarget.LocalVar[] localVars =
+                            new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.LocalVarTarget.LocalVar[length];
+                    for (int i = 0; i < length; i++) {
+                        localVars[i] =
+                                new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.LocalVarTarget.LocalVar(
+                                        toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2)));
+                    }
+                    yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.LocalVarTarget(length, localVars);
+                }
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_EXCEPTION_PARAMETER: {
+                    yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.CatchTarget(toInt(br.read(2)));
+                }
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_EXPRESSION_INSTANCEOF:
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_EXPRESSION_NEW:
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_METHOD_REFERENCE_CONSTRUCTOR:
+                case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_METHOD_REFERENCE_METHOD: {
+                    yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.OffsetTarget(toInt(br.read(2)));
+                }
+                default: {
+                    yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.TypeArgumentTarget(
+                            toInt(br.read(2)), br.read());
+                }
+            };
+        }
+        throw new IllegalArgumentException("");
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation[] readClassFileTypeAnnotations (int count)
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        if (count == 0) {
+            return new RuntimeTypeAnnotationAttribute.TypeAnnotation[0];
+        }
+        final RuntimeTypeAnnotationAttribute.TypeAnnotation[] typeAnnotations = new RuntimeTypeAnnotationAttribute.TypeAnnotation[count];
+        for (int i = 0; i < count; i++) {
+            typeAnnotations[i] = readClassFileTypeAnnotation();
+        }
+        return typeAnnotations;
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation readClassFileTypeAnnotation ()
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        final byte tag = br.read();
+        final int pathsLength;
+        final int numElementValuePairs;
+        return new RuntimeTypeAnnotationAttribute.TypeAnnotation(tag, readClassFileTargetInfo(tag),
+                new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetPath((pathsLength = toInt(br.read(2))), readPaths(pathsLength)),
+                toInt(br.read(2)),
+                (numElementValuePairs = toInt(br.read(2))),
+                readElementValuePairs(numElementValuePairs));
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo readClassFileTargetInfo (byte tag) {
+        return switch (tag) {
+            case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_PARAMETER_CLASS_INTERFACE: {
+                yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.TypeParameterTarget(br.read());
+            }
+            case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_BOUND_CLASS_INTERFACE:
+            case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_EXTEND_IMPLEMENTS: {
+                yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.SuperTypeTarget(toInt(br.read(2)));
+            }
+            default:{
+                throw new IllegalArgumentException("");
+            }
+        };
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation[] readMethodTypeAnnotations (int count)
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+        if (count == 0) {
+            return new RuntimeTypeAnnotationAttribute.TypeAnnotation[0];
+        }
+        final RuntimeTypeAnnotationAttribute.TypeAnnotation[] typeAnnotations = new RuntimeTypeAnnotationAttribute.TypeAnnotation[count];
+        for (int i = 0; i < count; i++) {
+            typeAnnotations[i] = readMethodTypeAnnotation();
+        }
+        return typeAnnotations;
+    }
+
+    protected RuntimeTypeAnnotationAttribute.TypeAnnotation readMethodTypeAnnotation () throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
         final byte tag = br.read();
         final int pathsLength;
         final int numElementValuePairs;
@@ -651,7 +800,7 @@ public class ClassReader {
     }
 
     @SuppressWarnings({"ConstantConditions", "EnhancedSwitchMigration"})
-    protected void readClassFileAttributes () throws IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+    protected void readClassFileAttributes () throws IllegalRuntimeAnnotationAttributeElementValueTagByteException, IllegalAttributeNameException {
         classFileAttributesCount = toInt(br.read(2));
         classFileAttributeTable = new ArrayList<>(classFileAttributesCount);
         for (int i = 0; i < classFileAttributesCount; i++) {
@@ -700,13 +849,13 @@ public class ClassReader {
                 case "RuntimeVisibleTypeAnnotations": {
                     final int numTypeAnnotations;
                     classFileAttributeTable.add(new RuntimeTypeAnnotationAttribute.RuntimeVisibleTypeAnnotationsAttribute(
-                            attributeNameIndex, attributesLength, (numTypeAnnotations = toInt(br.read(2))), readTypeAnnotations(numTypeAnnotations)));
+                            attributeNameIndex, attributesLength, (numTypeAnnotations = toInt(br.read(2))), readClassFileTypeAnnotations(numTypeAnnotations)));
                     break;
                 }
                 case "RuntimeInvisibleTypeAnnotations": {
                     final int numTypeAnnotations;
                     classFileAttributeTable.add(new RuntimeTypeAnnotationAttribute.RuntimeInvisibleTypeAnnotationsAttribute(
-                            attributeNameIndex, attributesLength, (numTypeAnnotations = toInt(br.read(2))), readTypeAnnotations(numTypeAnnotations)));
+                            attributeNameIndex, attributesLength, (numTypeAnnotations = toInt(br.read(2))), readClassFileTypeAnnotations(numTypeAnnotations)));
                     break;
                 }
                 case "SourceDebugExtension": {
@@ -756,19 +905,78 @@ public class ClassReader {
                     break;
                 }
                 case "NestMembers": {
-                    classFileAttributeTable.add(new NestHostAttribute(attributeNameIndex, attributesLength, toInt(br.read(2))));
+                    final int numberOfClasses = toInt(br.read(2));
+                    final int[] classes = new int[numberOfClasses];
+                    for (int j = 0; j < numberOfClasses; j++) {
+                        classes[j] = toInt(br.read(2));
+                    }
+                    classFileAttributeTable.add(new NestMembersAttribute(attributeNameIndex, attributesLength, numberOfClasses, classes));
                     break;
                 }
                 case "Record": {
-                    // TODO: 2022/5/22
+                    addRecordImpl(attributeNameIndex, attributesLength, name);
                     break;
                 }
                 case "PermittedSubclasses": {
-
+                    final int numberOfClasses = toInt(br.read(2));
+                    final int[] classes = new int[numberOfClasses];
+                    for (int j = 0; j < numberOfClasses; j++) {
+                        classes[j] = toInt(br.read(2));
+                    }
+                    classFileAttributeTable.add(new PermittedSubclassesAttribute(attributeNameIndex, attributesLength, numberOfClasses, classes));
                     break;
                 }
             }
         }
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void addRecordImpl (int attributeNameIndex, int attributesLength, String name)
+            throws IllegalRuntimeAnnotationAttributeElementValueTagByteException, IllegalAttributeNameException {
+        final int componentsCount = toInt(br.read(2));
+        final ArrayList<RecordAttribute.RecordComponentInfo> components = new ArrayList<>(componentsCount);
+        for (int j = 0; j < componentsCount; j++) {
+            final int nameIndex = toInt(br.read(2));
+            final int descriptorIndex = toInt(br.read(2));
+            final int attributesCount = toInt(br.read(2));
+            final AttributeInfo[] attributes = new AttributeInfo[attributesCount];
+            for (int k = 0; k < attributesCount; k++) {
+                final int attributeNameIndex1 = toInt(br.read(2));
+                final int attributeLength = toInt(br.read(2));
+                final String name1 = ((ConstUtf8Info) cpInfo.get(attributeNameIndex1 - 1)).getUtf8();
+                attributes[k] = switch (name1) {
+                    case "Signature": {
+                        yield new SignatureInfo(nameIndex, toInt(br.read(2)));
+                    }
+                    case "RuntimeVisibleAnnotations": {
+                        final int numAnnotation = toInt(br.read(2));
+                        yield new RuntimeAnnotationAttribute.RuntimeVisibleAnnotationAttribute(nameIndex,
+                                attributeLength, numAnnotation, readAnnotationAttribute(numAnnotation));
+                    }
+                    case "RuntimeInvisibleAnnotations": {
+                        final int numAnnotation = toInt(br.read(2));
+                        yield new RuntimeAnnotationAttribute.RuntimeInvisibleAnnotationAttribute(nameIndex,
+                                attributeLength, numAnnotation, readAnnotationAttribute(numAnnotation));
+                    }
+                    case "RuntimeVisibleTypeAnnotations": {
+                        final int numAnnotations;
+                        yield new RuntimeTypeAnnotationAttribute.RuntimeVisibleTypeAnnotationsAttribute(nameIndex,
+                                attributeLength, (numAnnotations = toInt(br.read(2))), readFieldInfoAndRecordTypeAnnotations(numAnnotations));
+                    }
+                    case "RuntimeInvisibleTypeAnnotations": {
+                        final int numAnnotations;
+                        yield new RuntimeTypeAnnotationAttribute.RuntimeInvisibleTypeAnnotationsAttribute(nameIndex,
+                                attributeLength, (numAnnotations = toInt(br.read(2))), readFieldInfoAndRecordTypeAnnotations(numAnnotations));
+                    }
+                    default: {
+                        throw new IllegalAttributeNameException("The name of attribute \""
+                                + name + "\" is not the attribute of field_info!");
+                    }
+                };
+            }
+            components.add(new RecordAttribute.RecordComponentInfo(nameIndex, descriptorIndex, attributesCount, attributes));
+        }
+        classFileAttributeTable.add(new RecordAttribute(attributeNameIndex, attributesLength, componentsCount, components));
     }
 
     private void addModuleAttributeImpl (int attributeNameIndex, int attributesLength) {
@@ -907,13 +1115,13 @@ public class ClassReader {
                 case "RuntimeVisibleTypeAnnotations": {
                     final int numAnnotations;
                     data.add(new RuntimeTypeAnnotationAttribute.RuntimeVisibleTypeAnnotationsAttribute(nameIndex,
-                            attributeLength, (numAnnotations = toInt(br.read(2))), readTypeAnnotations(numAnnotations)));
+                            attributeLength, (numAnnotations = toInt(br.read(2))), readFieldInfoAndRecordTypeAnnotations(numAnnotations)));
                     break;
                 }
                 case "RuntimeInvisibleTypeAnnotations": {
                     final int numAnnotations;
                     data.add(new RuntimeTypeAnnotationAttribute.RuntimeInvisibleTypeAnnotationsAttribute(nameIndex,
-                            attributeLength, (numAnnotations = toInt(br.read(2))), readTypeAnnotations(numAnnotations)));
+                            attributeLength, (numAnnotations = toInt(br.read(2))), readFieldInfoAndRecordTypeAnnotations(numAnnotations)));
                     break;
                 }
                 default: {
@@ -1196,6 +1404,10 @@ public class ClassReader {
                 ", interfaceIndexes=" + interfaceIndexes +
                 ", fieldsCount=" + fieldsCount +
                 ", fieldTable=" + fieldTable +
+                ", methodsCount=" + methodsCount +
+                ", methodTable=" + methodTable +
+                ", classFileAttributesCount=" + classFileAttributesCount +
+                ", classFileAttributeTable=" + classFileAttributeTable +
                 '}';
     }
 
