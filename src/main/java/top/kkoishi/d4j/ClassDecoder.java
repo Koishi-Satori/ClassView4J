@@ -68,6 +68,10 @@ public class ClassDecoder {
     public static class ClassResult {
         protected ArrayList<ClassReader.ClassFileAccessFlag> fileAccessFlags;
         protected final int[] bytecodeVersion = new int[]{0x0000, 0x0052};
+        protected String resourceFileName;
+        protected ArrayList<String> innerClasses;
+        protected ClassReader.ClassRef clz;
+
 
     }
 }

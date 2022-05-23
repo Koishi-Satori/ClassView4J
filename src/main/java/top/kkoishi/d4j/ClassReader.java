@@ -1613,12 +1613,14 @@ public class ClassReader implements Closeable {
     public static final class ClassRef {
         private String name;
         private String typeFullName;
+        private String superClassName;
         private ArrayList<MemberIdentify> identifies;
         private boolean deprecated;
         private int[] annotations;
         private String signature;
         private ArrayList<Annotation> annotationTable;
         private ArrayList<FieldRef> fields;
+        private ArrayList<MethodRef> methods;
 
         public String getName () {
             return name;
@@ -1630,31 +1632,83 @@ public class ClassReader implements Closeable {
 
         public ClassRef (String name,
                          String typeFullName,
+                         String superClassName,
                          ArrayList<MemberIdentify> identifies,
                          boolean deprecated, int[] annotations,
                          String signature,
                          ArrayList<Annotation> annotationTable,
-                         ArrayList<FieldRef> fields) {
+                         ArrayList<FieldRef> fields,
+                         ArrayList<MethodRef> methods) {
             this.name = name;
             this.typeFullName = typeFullName;
+            this.superClassName = superClassName;
             this.identifies = identifies;
             this.deprecated = deprecated;
             this.annotations = annotations;
             this.signature = signature;
             this.annotationTable = annotationTable;
             this.fields = fields;
+            this.methods = methods;
         }
 
         public ArrayList<FieldRef> getFields () {
             return fields;
         }
 
-        public ArrayList<Annotation> getAnnotationTable () {
-            return annotationTable;
+        public void setFields (ArrayList<FieldRef> fields) {
+            this.fields = fields;
         }
 
-        public void setAnnotationTable (ArrayList<Annotation> annotationTable) {
-            this.annotationTable = annotationTable;
+        public String getSuperClassName () {
+            return superClassName;
+        }
+
+        public String getTypeFullName () {
+            return typeFullName;
+        }
+
+        public ArrayList<MethodRef> getMethods () {
+            return methods;
+        }
+
+        public void setMethods (ArrayList<MethodRef> methods) {
+            this.methods = methods;
+        }
+
+        public ArrayList<Annotation> getAnnotationTable () {
+            return new ArrayList<>(annotationTable);
+        }
+
+        public ArrayList<MemberIdentify> getIdentifies () {
+            return identifies;
+        }
+
+        public void setIdentifies (ArrayList<MemberIdentify> identifies) {
+            this.identifies = identifies;
+        }
+
+        public boolean isDeprecated () {
+            return deprecated;
+        }
+
+        public void setDeprecated (boolean deprecated) {
+            this.deprecated = deprecated;
+        }
+
+        public int[] getAnnotations () {
+            return annotations;
+        }
+
+        public void setAnnotations (int[] annotations) {
+            this.annotations = annotations;
+        }
+
+        public String getSignature () {
+            return signature;
+        }
+
+        public void setSignature (String signature) {
+            this.signature = signature;
         }
 
         @Override
@@ -1662,16 +1716,19 @@ public class ClassReader implements Closeable {
             return "ClassRef{" +
                     "name='" + name + '\'' +
                     ", typeFullName='" + typeFullName + '\'' +
+                    ", superClassName='" + superClassName + '\'' +
                     ", identifies=" + identifies +
                     ", deprecated=" + deprecated +
                     ", annotations=" + Arrays.toString(annotations) +
                     ", signature='" + signature + '\'' +
                     ", annotationTable=" + annotationTable +
                     ", fields=" + fields +
+                    ", methods=" + methods +
                     '}';
         }
     }
 
+    @SuppressWarnings("FieldMayBeFinal")
     public static final class MethodRef implements Member {
         private ClassRef owner;
         private String name;
@@ -1684,46 +1741,221 @@ public class ClassReader implements Closeable {
         private ArrayList<Byte> code;
         private ArrayList<ClassRef> paramTypes;
         private ArrayList<ClassRef> exceptionTypes;
-        // TODO: 2022/5/23 finishe method
+        private ArrayList<LocalVar> localVariableTable;
+        private ArrayList<LocalVarType> localVariableTypeTable;
+        private ArrayList<StackMapTableAttribute.StackMapFrame> stackFrames;
+
+        public MethodRef (ClassRef owner,
+                          String name,
+                          String typeFullName,
+                          ArrayList<MemberIdentify> identifies,
+                          boolean deprecated,
+                          ArrayList<Integer> annotations,
+                          String signature,
+                          ArrayList<Byte> code,
+                          ArrayList<ClassRef> paramTypes,
+                          ArrayList<ClassRef> exceptionTypes,
+                          ArrayList<LocalVar> localVariableTable,
+                          ArrayList<LocalVarType> localVariableTypeTable,
+                          ArrayList<StackMapTableAttribute.StackMapFrame> stackFrames) {
+            this.owner = owner;
+            this.name = name;
+            this.typeFullName = typeFullName;
+            this.identifies = identifies;
+            this.deprecated = deprecated;
+            this.annotations = annotations;
+            this.signature = signature;
+            this.code = code;
+            this.paramTypes = paramTypes;
+            this.exceptionTypes = exceptionTypes;
+            this.localVariableTable = localVariableTable;
+            this.localVariableTypeTable = localVariableTypeTable;
+            this.stackFrames = stackFrames;
+        }
 
         @Override
         public String getFullyQualifiedType () {
-            return null;
+            return typeFullName;
         }
 
         @Override
         public String getName () {
-            return null;
+            return name;
         }
 
         @Override
         public boolean isSynthetic () {
-            return false;
+            return identifies.contains(MemberIdentify.SYNTHETIC);
         }
 
         @Override
         public ArrayList<MemberIdentify> getIdentifies () {
-            return null;
+            return identifies;
         }
 
         @Override
         public void setIdentifies (MemberIdentify... identifies) {
-
+            this.identifies.clear();
+            this.identifies.addAll(Arrays.asList(identifies));
         }
 
         @Override
         public boolean isDeprecated () {
-            return false;
+            return deprecated;
         }
 
         @Override
         public ArrayList<Annotation> getAnnotations () {
-            return null;
+            final ArrayList<Annotation> annotations = new ArrayList<>(this.annotations.size());
+            for (final int index : this.annotations) {
+                annotations.add(owner.annotationTable.get(index));
+            }
+            return annotations;
         }
 
         @Override
         public void setAnnotations (Annotation... annotations) {
+            setAnnotations(indexesOf(this.annotations, (Object[]) annotations));
+        }
 
+        public int annotationAmount () {
+            return annotations.size();
+        }
+
+        public void setAnnotations (int... indexes) {
+            setAnnotations(0, indexes);
+        }
+
+        public void setAnnotations (int start, int... indexes) {
+            if (start == 0) {
+                annotations.clear();
+                Arrays.stream(indexes).forEach(index -> annotations.add(index));
+            } else {
+                if (start >= annotations.size()) {
+                    Arrays.stream(indexes).forEach(index -> annotations.add(index));
+                } else {
+                    final int size = annotations.size();
+                    annotations.subList(start, size).clear();
+                    Arrays.stream(indexes).forEach(index -> annotations.add(index));
+                }
+            }
+        }
+
+        @Override
+        public String toString () {
+            return "MethodRef{" +
+                    "owner=" + owner +
+                    ", name='" + name + '\'' +
+                    ", typeFullName='" + typeFullName + '\'' +
+                    ", identifies=" + identifies +
+                    ", deprecated=" + deprecated +
+                    ", annotations=" + annotations +
+                    ", signature='" + signature + '\'' +
+                    ", code=" + code +
+                    ", paramTypes=" + paramTypes +
+                    ", exceptionTypes=" + exceptionTypes +
+                    ", localVariableTable=" + localVariableTable +
+                    ", localVariableTypeTable=" + localVariableTypeTable +
+                    ", stackFrames=" + stackFrames +
+                    '}';
+        }
+
+        public static final class LocalVar {
+            public String name;
+            public final String type;
+            public final int slot;
+            public int start;
+            public int length;
+
+            public LocalVar (String name, String type, int slot, int start, int length) {
+                this.name = name;
+                this.type = type;
+                this.slot = slot;
+                this.start = start;
+                this.length = length;
+            }
+        }
+
+        public static final class LocalVarType {
+            public String name;
+            public final String type;
+            public final int slot;
+            public int start;
+            public int length;
+
+            public LocalVarType (String name, String type, int slot, int start, int length) {
+                this.name = name;
+                this.type = type;
+                this.slot = slot;
+                this.start = start;
+                this.length = length;
+            }
+        }
+
+        public static abstract class VerificationMethod extends VerificationTypeInfo {
+            protected VerificationMethod (byte tag) {
+                super(tag);
+            }
+
+            public static final class TopVarInfo extends VerificationMethod {
+                public TopVarInfo () {
+                    super(TOP_VARIABLE_INFO);
+                }
+            }
+
+            public static final class IntVarInfo extends VerificationMethod {
+                public IntVarInfo () {
+                    super(INTEGER_VARIABLE_INFO);
+                }
+            }
+
+            public static final class FloatVarInfo extends VerificationMethod {
+                public FloatVarInfo () {
+                    super(FLOAT_VARIABLE_INFO);
+                }
+            }
+
+            public static final class LongVarInfo extends VerificationMethod {
+                public LongVarInfo () {
+                    super(LONG_VARIABLE_INFO);
+                }
+            }
+
+            public static final class DoubleVarInfo extends VerificationMethod {
+                public DoubleVarInfo () {
+                    super(DOUBLE_VARIABLE_INFO);
+                }
+            }
+
+            public static final class NullVarInfo extends VerificationMethod {
+                public NullVarInfo () {
+                    super(NULL_VARIABLE_INFO);
+                }
+            }
+
+            public static final class UninitializedThisVar extends VerificationMethod {
+                public UninitializedThisVar () {
+                    super(UNINITIALIZED_THIS);
+                }
+            }
+
+            public static final class ObjectVarInfo extends VerificationMethod {
+                public final String className;
+
+                public ObjectVarInfo (String className) {
+                    super(OBJECT_VARIABLE_INFO);
+                    this.className = className;
+                }
+            }
+
+            public static final class UninitializedVarInfo extends VerificationMethod {
+                public final int offset;
+
+                public UninitializedVarInfo (int offset) {
+                    super(UNINITIALIZED_VARIABLE_INFO);
+                    this.offset = offset;
+                }
+            }
         }
     }
 
