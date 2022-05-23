@@ -2,7 +2,6 @@ package top.kkoishi.d4j;
 
 import top.kkoishi.d4j.attr.AnnotationDefaultAttribute;
 import top.kkoishi.d4j.attr.BootstrapMethodsAttribute;
-import top.kkoishi.d4j.attr.CodeAttribute;
 import top.kkoishi.d4j.attr.ConstantValueAttribute;
 import top.kkoishi.d4j.attr.DeprecatedAttribute;
 import top.kkoishi.d4j.attr.EnclosingMethodAttribute;
@@ -27,6 +26,7 @@ import top.kkoishi.d4j.attr.SourceDebugExtensionAttribute;
 import top.kkoishi.d4j.attr.SourceFileAttribute;
 import top.kkoishi.d4j.attr.StackMapTableAttribute;
 import top.kkoishi.d4j.attr.SyntheticAttribute;
+import top.kkoishi.d4j.attr.CodeAttribute;
 import top.kkoishi.d4j.attr.frames.AppendFrames;
 import top.kkoishi.d4j.attr.frames.ChopFrame;
 import top.kkoishi.d4j.attr.frames.FullFrame;
@@ -46,6 +46,7 @@ import top.kkoishi.d4j.attr.frames.verifi.UninitialzedThis;
 import top.kkoishi.d4j.attr.frames.verifi.VerificationTypeInfo;
 import top.kkoishi.d4j.cp.ConstClassInfo;
 import top.kkoishi.d4j.cp.ConstDoubleInfo;
+import top.kkoishi.d4j.cp.ConstDynamicInfo;
 import top.kkoishi.d4j.cp.ConstFieldrefInfo;
 import top.kkoishi.d4j.cp.ConstFloatInfo;
 import top.kkoishi.d4j.cp.ConstIntegerInfo;
@@ -55,18 +56,22 @@ import top.kkoishi.d4j.cp.ConstLongInfo;
 import top.kkoishi.d4j.cp.ConstMethodHandleInfo;
 import top.kkoishi.d4j.cp.ConstMethodTypeInfo;
 import top.kkoishi.d4j.cp.ConstMethodrefInfo;
+import top.kkoishi.d4j.cp.ConstModuleInfo;
 import top.kkoishi.d4j.cp.ConstNameAndTypeInfo;
+import top.kkoishi.d4j.cp.ConstPackageInfo;
 import top.kkoishi.d4j.cp.ConstStringInfo;
 import top.kkoishi.d4j.cp.ConstUtf8Info;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author KKoishi_
  */
 @SuppressWarnings("unused")
-public class ClassReader {
+public class ClassReader implements Closeable {
     public static final byte[] FILE_HEAD = new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE};
     public static final int ACC_PUBLIC = 0X0001;
     public static final int ACC_FINAL = 0X0010;
@@ -82,7 +87,7 @@ public class ClassReader {
     public static final byte ELEMENT_VALUE_TYPE_DOUBLE = 'D';
     public static final byte ELEMENT_VALUE_TYPE_FLOAT = 'F';
     public static final byte ELEMENT_VALUE_TYPE_INT = 'I';
-    public static final byte ELEMENT_VALUE_TYPE_LONG = 'L';
+    public static final byte ELEMENT_VALUE_TYPE_LONG = 'J';
     public static final byte ELEMENT_VALUE_TYPE_SHORT = 'S';
     public static final byte ELEMENT_VALUE_TYPE_BOOLEAN = 'Z';
     public static final byte ELEMENT_VALUE_TYPE_STRING = 's';
@@ -194,12 +199,12 @@ public class ClassReader {
 
     public static int toInt (byte[] arr) {
         int val = 0;
-        for (int i = 0; i < arr.length; i++) {
-            val += arr[i];
-            if (i == arr.length - 1) {
-                return val;
-            }
-            val *= 128;
+        int len = arr.length;
+        final int end = len;
+        for (int i = 0; i < end; i++) {
+            int n = (arr[i]) & 0XFF;
+            n <<= (--len) * 8;
+            val += n;
         }
         return val;
     }
@@ -276,7 +281,7 @@ public class ClassReader {
                     toInt(br.read(2)),
                     (attributesCount = toInt(br.read(2))),
                     readMethodAttributeTable(attributesCount)));
-            System.out.println(methodTable);
+
         }
     }
 
@@ -305,7 +310,6 @@ public class ClassReader {
                             readCodeExceptions(exceptionTableLength),
                             (attributesCount = toInt(br.read(2))),
                             readCodeAttributeTable(attributesCount));
-                    System.out.println("Code:" + codeLength);
                     break;
                 }
                 case "Exceptions": {
@@ -540,7 +544,7 @@ public class ClassReader {
             case RuntimeTypeAnnotationAttribute.TypeAnnotation.TYPE_EXTEND_IMPLEMENTS: {
                 yield new RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetInfo.SuperTypeTarget(toInt(br.read(2)));
             }
-            default:{
+            default: {
                 throw new IllegalArgumentException("");
             }
         };
@@ -689,7 +693,8 @@ public class ClassReader {
                 case (byte) 252:
                 case (byte) 253:
                 case (byte) 254: {
-                    frames.add(new AppendFrames(frameType, toInt(br.read(2)), readVerificationTypeInfo(252 - frameType)));
+                    frames.add(new AppendFrames(frameType, toInt(br.read(2)),
+                            readVerificationTypeInfo((frameType & 0XFF) - 251)));
                     break;
                 }
                 case (byte) 255: {
@@ -720,6 +725,7 @@ public class ClassReader {
 
     protected VerificationTypeInfo readVerificationTypeInfo () {
         final byte tag = br.read();
+        System.out.println("Verification tag:" + tag);
         return switch (tag) {
             case VerificationTypeInfo.TOP_VARIABLE_INFO: {
                 yield new TopVariableInfo();
@@ -749,7 +755,7 @@ public class ClassReader {
                 yield new LongVariableInfo();
             }
             default: {
-                throw new IllegalArgumentException("The tag of verification_type_info is illegal!");
+                throw new IllegalArgumentException("The tag of verification_type_info is illegal, got " + tag);
             }
         };
     }
@@ -1073,7 +1079,8 @@ public class ClassReader {
     }
 
     @SuppressWarnings({"EnhancedSwitchMigration", "ConstantConditions"})
-    protected ArrayList<AttributeInfo> readFieldAttributeTable (int count) throws IllegalAttributeNameException, IllegalRuntimeAnnotationAttributeElementValueTagByteException {
+    protected ArrayList<AttributeInfo> readFieldAttributeTable (int count)
+            throws IllegalAttributeNameException, IllegalRuntimeAnnotationAttributeElementValueTagByteException {
         final var data = new ArrayList<AttributeInfo>(count);
         for (int i = 0; i < count; i++) {
             final int nameIndex = toInt(br.read(2));
@@ -1082,7 +1089,7 @@ public class ClassReader {
             // the name index will tell the name of attribute,
             // then we can use it to differ.
             final String name = ((ConstUtf8Info) cpInfo.get(nameIndex - 1)).getUtf8();
-            // TODO: 2022/5/21 build field_info attribute_info table.
+            // build field_info attribute_info table.
             switch (name) {
                 case "ConstantValue": {
                     data.add(new ConstantValueAttribute(nameIndex, toInt(br.read(2))));
@@ -1193,7 +1200,7 @@ public class ClassReader {
                         break;
                     }
                     default: {
-                        throw new IllegalRuntimeAnnotationAttributeElementValueTagByteException("");
+                        throw new IllegalRuntimeAnnotationAttributeElementValueTagByteException("Illegal element_value tag:" + tag);
                     }
                 }
                 final RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue elementValue =
@@ -1291,7 +1298,7 @@ public class ClassReader {
     @SuppressWarnings("EnhancedSwitchMigration")
     protected void readCpInfo () throws IllegalConstPoolInfoTagByteException {
         cpInfo = new ArrayList<>(constPoolCount);
-        for (int i = 0; i < constPoolCount; i++) {
+        for (int i = 1; i <= constPoolCount; i++) {
             final byte tag = br.read();
             switch (tag) {
                 case ConstPoolInfo.CONSTANT_STRING_INFO: {
@@ -1307,7 +1314,9 @@ public class ClassReader {
                     break;
                 }
                 case ConstPoolInfo.CONSTANT_UTF8_INFO: {
-                    cpInfo.add(new ConstUtf8Info(br.read(toInt(br.read(2)))));
+                    final var bits = br.read(2);
+                    final var ba = calculateUtf8Length(toInt(bits));
+                    cpInfo.add(new ConstUtf8Info(ba));
                     break;
                 }
                 case ConstPoolInfo.CONSTANT_INTEGER_INFO: {
@@ -1346,14 +1355,63 @@ public class ClassReader {
                     cpInfo.add(new ConstNameAndTypeInfo(br.read(2), br.read(2)));
                     break;
                 }
+                case ConstPoolInfo.CONSTANT_DYNAMIC: {
+                    cpInfo.add(new ConstDynamicInfo(br.read(2), br.read(2)));
+                    break;
+                }
                 case ConstPoolInfo.CONSTANT_INVOKE_DYNAMIC_INFO: {
                     cpInfo.add(new ConstInvokeDynamicInfo(br.read(2), br.read(2)));
+                    break;
+                }
+                case ConstPoolInfo.CONSTANT_MODULE: {
+                    cpInfo.add(new ConstModuleInfo(br.read(2)));
+                    break;
+                }
+                case ConstPoolInfo.CONSTANT_PACKAGE: {
+                    cpInfo.add(new ConstPackageInfo(br.read(2)));
                     break;
                 }
                 default:
                     throw new IllegalConstPoolInfoTagByteException("The tag byte of CONSTANT_info is illegal:got " + tag);
             }
         }
+    }
+
+    protected byte[] calculateUtf8Length (int binaryLength) {
+        byte[] result = new byte[binaryLength];
+        int sum = 0;
+        for (int i = 0; i < binaryLength; i++) {
+            final byte b = br.read();
+            final int first = (b & 0XFF);
+            result[sum] = b;
+            if (first <= (byte) 0X7F) {
+                ++sum;
+            } else if (first >= 0XC0 && first <= 0XDF) {
+                result = plus(result, br.read());
+                sum += 2;
+            } else if (first >= 0XE0 && first <= 0XEF) {
+                result = plus(result, br.read(2));
+                sum += 3;
+            } else if (first >= 0XF0 && first <= 0XF7) {
+                result = plus(result, br.read(3));
+                sum += 4;
+            } else if (first >= 0XF8 && first <= 0XFB) {
+                result = plus(result, br.read(4));
+                sum += 5;
+            } else if (first >= 0XFC && first <= 0XFD) {
+                result = plus(result, br.read(5));
+                sum += 6;
+            }
+        }
+        return result;
+    }
+
+    private static byte[] plus (byte[] b1, byte... b2) {
+        final byte[] cpy = b1;
+        b1 = new byte[b1.length + b2.length];
+        System.arraycopy(cpy, 0, b1, 0, cpy.length);
+        System.arraycopy(b2, 0, b1, cpy.length, b2.length);
+        return b1;
     }
 
     protected void readFileInfo () throws IllegalMagicNumberException {
@@ -1366,7 +1424,6 @@ public class ClassReader {
             majorBytecodeVersion = toInt(cache);
             cache = br.read(2);
             constPoolCount = toInt(cache) - 1;
-            System.out.println(Arrays.toString(cache));
         } else {
             throw new IllegalMagicNumberException("The binary file magic number is " +
                     Arrays.toString(cache) + ", but the correct one is 0XCAFEBABE");
@@ -1411,6 +1468,31 @@ public class ClassReader {
                 '}';
     }
 
+    @Override
+    public void close () {
+        br.close();
+        constPoolCount = 0;
+        majorBytecodeVersion = 0;
+        minorBytecodeVersion = 0;
+        cpInfo.clear();
+        cpInfo = null;
+        accessFlags = 0;
+        thisClassIndex = null;
+        superClassIndex = null;
+        interfaceCount = 0;
+        interfaceIndexes.clear();
+        interfaceIndexes = null;
+        fieldsCount = 0;
+        fieldTable.clear();
+        fieldTable = null;
+        methodsCount = 0;
+        methodTable.clear();
+        methodTable = null;
+        classFileAttributesCount = 0;
+        classFileAttributeTable.clear();
+        classFileAttributeTable = null;
+    }
+
     public static final class IllegalMagicNumberException extends DecompilerException {
         public IllegalMagicNumberException (String message) {
             super(message);
@@ -1432,6 +1514,191 @@ public class ClassReader {
     public static final class IllegalRuntimeAnnotationAttributeElementValueTagByteException extends DecompilerException {
         public IllegalRuntimeAnnotationAttributeElementValueTagByteException (String message) {
             super(message);
+        }
+    }
+
+    public enum ClassFileAccessFlag {
+        PUBLIC(ACC_PUBLIC, "public"),
+        FINAL(ACC_FINAL, "final"),
+        SUPER(ACC_SUPER, "undefined"),
+        INTERFACE(ACC_INTERFACE, "interface"),
+        ABSTRACT(ACC_ABSTRACT, "abstract"),
+        SYNTHETIC(ACC_SYNTHETIC, "undefined"),
+        ANNOTATION(ACC_ANNOTATION, "@interface"),
+        ENUM(ACC_ENUM, "enum"),
+        MODULE(ACC_MODULE, "module");
+        final int accessFlag;
+        final String readableName;
+
+        ClassFileAccessFlag (int accessFlag, String readableName) {
+            this.accessFlag = accessFlag;
+            this.readableName = readableName;
+        }
+
+        public int getAccessFlag () {
+            return accessFlag;
+        }
+
+        public String readableName () {
+            return readableName;
+        }
+    }
+
+    public enum MemberIdentify {
+        PUBLIC(FIELD_ACCESS_FLAG_ACC_PUBLIC, "public"),
+        FINAL(FIELD_ACCESS_FLAG_ACC_FINAL, "final"),
+        PRIVATE(FIELD_ACCESS_FLAG_ACC_PRIVATE, "private"),
+        PROTECTED(FIELD_ACCESS_FLAG_ACC_PROTECTED, "protected"),
+        STATIC(FIELD_ACCESS_FLAG_ACC_STATIC, "static"),
+        SYNTHETIC(ACC_SYNTHETIC, "undefined"),
+        TRANSIENT(FIELD_ACCESS_FLAG_ACC_TRANSIENT, "transient"),
+        VOLATILE(FIELD_ACCESS_FLAG_ACC_VOLATILE, "volatile"),
+        ENUM(FIELD_ACCESS_FLAG_ACC_ENUM, "undefined");
+        final int accessFlag;
+        final String readableName;
+
+        MemberIdentify (int accessFlag, String readableName) {
+            this.accessFlag = accessFlag;
+            this.readableName = readableName;
+        }
+
+        public int getAccessFlag () {
+            return accessFlag;
+        }
+
+        public String readableName () {
+            return readableName;
+        }
+    }
+
+    public interface Member {
+        String getFullyQualifiedType ();
+
+        String getName ();
+
+        boolean isSynthetic ();
+
+        ArrayList<MemberIdentify> getIdentifies ();
+
+        void setIdentifies (MemberIdentify... identifies);
+
+        boolean isDeprecated ();
+
+        ArrayList<Annotation> getAnnotations ();
+
+        void setAnnotations (Annotation... annotations);
+
+        default boolean typeIsPrimitive () {
+            return switch (getFullyQualifiedType()) {
+                case "int":
+                case "boolean":
+                case "char":
+                case "double":
+                case "long":
+                case "byte":
+                case "float":
+                case "short": yield true;
+                default: yield false;
+            };
+        }
+    }
+
+    public static final class Annotation {
+
+    }
+
+    public static final class ClassRef {
+        private String name;
+        private String typeFullName;
+        private ArrayList<MemberIdentify> identifies;
+        private boolean deprecated;
+        private int[] annotations;
+        private String signature;
+        private ArrayList<Annotation> annotationTable;
+    }
+
+    @SuppressWarnings("FieldMayBeFinal")
+    public static final class FieldRef implements Member {
+        private ClassRef owner;
+        private String name;
+        private String typeFullName;
+        private ArrayList<MemberIdentify> identifies;
+        private boolean deprecated;
+        private ArrayList<Integer> annotations;
+        private String signature;
+
+        public FieldRef (ClassRef owner,
+                         String name,
+                         String typeFullName,
+                         ArrayList<MemberIdentify> identifies,
+                         boolean deprecated,
+                         ArrayList<Integer> annotations,
+                         String signature) {
+            this.owner = owner;
+            this.name = name;
+            this.typeFullName = typeFullName;
+            this.identifies = identifies;
+            this.deprecated = deprecated;
+            this.annotations = annotations;
+            this.signature = signature;
+        }
+
+        @Override
+        public String getFullyQualifiedType () {
+            return typeFullName;
+        }
+
+        @Override
+        public String getName () {
+            return name;
+        }
+
+        @Override
+        public boolean isSynthetic () {
+            return identifies.contains(MemberIdentify.SYNTHETIC);
+        }
+
+        @Override
+        public ArrayList<MemberIdentify> getIdentifies () {
+            return identifies;
+        }
+
+        @Override
+        public void setIdentifies (MemberIdentify... identifies) {
+            this.identifies.clear();
+            this.identifies.addAll(Arrays.asList(identifies));
+        }
+
+        @Override
+        public boolean isDeprecated () {
+            return deprecated;
+        }
+
+        @Override
+        public ArrayList<Annotation> getAnnotations () {
+            final ArrayList<Annotation> annotations = new ArrayList<>(this.annotations.size());
+            for (final int index : this.annotations) {
+                annotations.add(owner.annotationTable.get(index));
+            }
+            return annotations;
+        }
+
+        @Override
+        public void setAnnotations (Annotation... annotations) {
+            throw new UnsupportedOperationException("");
+        }
+
+        public void setAnnotations (int... indexes) {
+            setAnnotations(0, indexes);
+        }
+
+        public void setAnnotations (int start, int ...indexes) {
+            if (start == 0) {
+                annotations.clear();
+                Arrays.stream(indexes).forEach(index -> annotations.add(index));
+            } else {
+
+            }
         }
     }
 }

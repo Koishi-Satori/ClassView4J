@@ -1,6 +1,10 @@
 package top.kkoishi.d4j;
 
-class ByteReader {
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Arrays;
+
+class ByteReader implements Closeable {
     int pos = 0;
     final byte[] data;
 
@@ -29,5 +33,11 @@ class ByteReader {
             System.out.print(data[i] + "\t");
         }
         System.out.println("\n" + pos);
+    }
+
+    @Override
+    public void close () {
+        pos = 0;
+        Arrays.fill(data, (byte) 0);
     }
 }
