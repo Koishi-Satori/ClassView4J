@@ -1597,16 +1597,19 @@ public class ClassReader implements Closeable {
                 case "long":
                 case "byte":
                 case "float":
-                case "short": yield true;
-                default: yield false;
+                case "short":
+                    yield true;
+                default:
+                    yield false;
             };
         }
     }
 
     public static final class Annotation {
-
+        // TODO: 2022/5/23 finish annotation, method and constructor
     }
 
+    @SuppressWarnings("FieldMayBeFinal")
     public static final class ClassRef {
         private String name;
         private String typeFullName;
@@ -1615,6 +1618,113 @@ public class ClassReader implements Closeable {
         private int[] annotations;
         private String signature;
         private ArrayList<Annotation> annotationTable;
+        private ArrayList<FieldRef> fields;
+
+        public String getName () {
+            return name;
+        }
+
+        public String getFullyQualifiedType () {
+            return typeFullName;
+        }
+
+        public ClassRef (String name,
+                         String typeFullName,
+                         ArrayList<MemberIdentify> identifies,
+                         boolean deprecated, int[] annotations,
+                         String signature,
+                         ArrayList<Annotation> annotationTable,
+                         ArrayList<FieldRef> fields) {
+            this.name = name;
+            this.typeFullName = typeFullName;
+            this.identifies = identifies;
+            this.deprecated = deprecated;
+            this.annotations = annotations;
+            this.signature = signature;
+            this.annotationTable = annotationTable;
+            this.fields = fields;
+        }
+
+        public ArrayList<FieldRef> getFields () {
+            return fields;
+        }
+
+        public ArrayList<Annotation> getAnnotationTable () {
+            return annotationTable;
+        }
+
+        public void setAnnotationTable (ArrayList<Annotation> annotationTable) {
+            this.annotationTable = annotationTable;
+        }
+
+        @Override
+        public String toString () {
+            return "ClassRef{" +
+                    "name='" + name + '\'' +
+                    ", typeFullName='" + typeFullName + '\'' +
+                    ", identifies=" + identifies +
+                    ", deprecated=" + deprecated +
+                    ", annotations=" + Arrays.toString(annotations) +
+                    ", signature='" + signature + '\'' +
+                    ", annotationTable=" + annotationTable +
+                    ", fields=" + fields +
+                    '}';
+        }
+    }
+
+    public static final class MethodRef implements Member {
+        private ClassRef owner;
+        private String name;
+        private String typeFullName;
+        private ArrayList<MemberIdentify> identifies;
+        private boolean deprecated;
+        private ArrayList<Integer> annotations;
+        @SuppressWarnings("FieldCanBeLocal")
+        private String signature;
+        private ArrayList<Byte> code;
+        private ArrayList<ClassRef> paramTypes;
+        private ArrayList<ClassRef> exceptionTypes;
+        // TODO: 2022/5/23 finishe method
+
+        @Override
+        public String getFullyQualifiedType () {
+            return null;
+        }
+
+        @Override
+        public String getName () {
+            return null;
+        }
+
+        @Override
+        public boolean isSynthetic () {
+            return false;
+        }
+
+        @Override
+        public ArrayList<MemberIdentify> getIdentifies () {
+            return null;
+        }
+
+        @Override
+        public void setIdentifies (MemberIdentify... identifies) {
+
+        }
+
+        @Override
+        public boolean isDeprecated () {
+            return false;
+        }
+
+        @Override
+        public ArrayList<Annotation> getAnnotations () {
+            return null;
+        }
+
+        @Override
+        public void setAnnotations (Annotation... annotations) {
+
+        }
     }
 
     @SuppressWarnings("FieldMayBeFinal")
@@ -1625,6 +1735,7 @@ public class ClassReader implements Closeable {
         private ArrayList<MemberIdentify> identifies;
         private boolean deprecated;
         private ArrayList<Integer> annotations;
+        @SuppressWarnings("FieldCanBeLocal")
         private String signature;
 
         public FieldRef (ClassRef owner,
@@ -1685,20 +1796,59 @@ public class ClassReader implements Closeable {
 
         @Override
         public void setAnnotations (Annotation... annotations) {
-            throw new UnsupportedOperationException("");
+            setAnnotations(indexesOf(this.annotations, (Object[]) annotations));
+        }
+
+        public int annotationAmount () {
+            return annotations.size();
         }
 
         public void setAnnotations (int... indexes) {
             setAnnotations(0, indexes);
         }
 
-        public void setAnnotations (int start, int ...indexes) {
+        public void setAnnotations (int start, int... indexes) {
             if (start == 0) {
                 annotations.clear();
                 Arrays.stream(indexes).forEach(index -> annotations.add(index));
             } else {
-
+                if (start >= annotations.size()) {
+                    Arrays.stream(indexes).forEach(index -> annotations.add(index));
+                } else {
+                    final int size = annotations.size();
+                    annotations.subList(start, size).clear();
+                    Arrays.stream(indexes).forEach(index -> annotations.add(index));
+                }
             }
         }
+
+        @Override
+        public String toString () {
+            return "FieldRef{" +
+                    "owner=" + owner +
+                    ", name='" + name + '\'' +
+                    ", typeFullName='" + typeFullName + '\'' +
+                    ", identifies=" + identifies +
+                    ", deprecated=" + deprecated +
+                    ", annotations=" + annotations +
+                    ", signature='" + signature + '\'' +
+                    '}';
+        }
+    }
+
+    public static int[] indexesOf (ArrayList<?> a, Object... objects) {
+        final int[] arr = new int[objects.length];
+        final int aSize = a.size();
+        int cur = 0;
+        for (int i = 0; i < aSize; i++) {
+            final var val = a.get(i);
+            if (val == objects[cur]) {
+                arr[cur++] = i;
+            }
+        }
+        if (cur != objects.length - 1) {
+            throw new IllegalArgumentException();
+        }
+        return arr;
     }
 }
