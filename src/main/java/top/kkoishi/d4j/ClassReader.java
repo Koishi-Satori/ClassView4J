@@ -65,7 +65,6 @@ import top.kkoishi.d4j.cp.ConstUtf8Info;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * @author KKoishi_
@@ -1610,7 +1609,30 @@ public class ClassReader implements Closeable {
     }
 
     @SuppressWarnings("FieldMayBeFinal")
-    public static final class ClassRef {
+    public static final class ClassStore {
+        public static final ClassStore IntClass = getNameOnlyClass("int", "java.lang.Integer");
+        public static final ClassStore LongClass = getNameOnlyClass("long", "java.lang.Long");
+        public static final ClassStore ShortClass = getNameOnlyClass("short", "java.lang.Short");
+        public static final ClassStore floatClass = getNameOnlyClass("float", "java.lang.Float");
+        public static final ClassStore doubleClass = getNameOnlyClass("double", "java.lang.Double");
+        public static final ClassStore byteClass = getNameOnlyClass("byte", "java.lang.Byte");
+        public static final ClassStore boolClass = getNameOnlyClass("boolean", "java.lang.Boolean");
+        public static final ClassStore charClass = getNameOnlyClass("char", "java.lang.Character");
+        public static final ClassStore stringClass = getNameOnlyClass("String", "java.lang.String");
+
+        static ClassStore getNameOnlyClass (String name, String typeFullName) {
+            return new ClassStore(name,
+                    typeFullName,
+                    null,
+                    null,
+                    false,
+                    new int[0],
+                    typeFullName,
+                    null,
+                    null,
+                    null);
+        }
+
         private String name;
         private String typeFullName;
         private String superClassName;
@@ -1619,8 +1641,8 @@ public class ClassReader implements Closeable {
         private int[] annotations;
         private String signature;
         private ArrayList<Annotation> annotationTable;
-        private ArrayList<FieldRef> fields;
-        private ArrayList<MethodRef> methods;
+        private ArrayList<FieldStore> fields;
+        private ArrayList<MethodStore> methods;
 
         public String getName () {
             return name;
@@ -1630,15 +1652,15 @@ public class ClassReader implements Closeable {
             return typeFullName;
         }
 
-        public ClassRef (String name,
-                         String typeFullName,
-                         String superClassName,
-                         ArrayList<MemberIdentify> identifies,
-                         boolean deprecated, int[] annotations,
-                         String signature,
-                         ArrayList<Annotation> annotationTable,
-                         ArrayList<FieldRef> fields,
-                         ArrayList<MethodRef> methods) {
+        public ClassStore (String name,
+                           String typeFullName,
+                           String superClassName,
+                           ArrayList<MemberIdentify> identifies,
+                           boolean deprecated, int[] annotations,
+                           String signature,
+                           ArrayList<Annotation> annotationTable,
+                           ArrayList<FieldStore> fields,
+                           ArrayList<MethodStore> methods) {
             this.name = name;
             this.typeFullName = typeFullName;
             this.superClassName = superClassName;
@@ -1651,11 +1673,11 @@ public class ClassReader implements Closeable {
             this.methods = methods;
         }
 
-        public ArrayList<FieldRef> getFields () {
+        public ArrayList<FieldStore> getFields () {
             return fields;
         }
 
-        public void setFields (ArrayList<FieldRef> fields) {
+        public void setFields (ArrayList<FieldStore> fields) {
             this.fields = fields;
         }
 
@@ -1667,11 +1689,11 @@ public class ClassReader implements Closeable {
             return typeFullName;
         }
 
-        public ArrayList<MethodRef> getMethods () {
+        public ArrayList<MethodStore> getMethods () {
             return methods;
         }
 
-        public void setMethods (ArrayList<MethodRef> methods) {
+        public void setMethods (ArrayList<MethodStore> methods) {
             this.methods = methods;
         }
 
@@ -1729,35 +1751,34 @@ public class ClassReader implements Closeable {
     }
 
     @SuppressWarnings("FieldMayBeFinal")
-    public static final class MethodRef implements Member {
-        private ClassRef owner;
+    public static final class MethodStore implements Member {
+        private ClassStore owner;
         private String name;
         private String typeFullName;
         private ArrayList<MemberIdentify> identifies;
         private boolean deprecated;
         private ArrayList<Integer> annotations;
-        @SuppressWarnings("FieldCanBeLocal")
         private String signature;
         private ArrayList<Byte> code;
-        private ArrayList<ClassRef> paramTypes;
-        private ArrayList<ClassRef> exceptionTypes;
+        private ArrayList<ClassStore> paramTypes;
+        private ArrayList<ClassStore> exceptionTypes;
         private ArrayList<LocalVar> localVariableTable;
         private ArrayList<LocalVarType> localVariableTypeTable;
         private ArrayList<StackMapTableAttribute.StackMapFrame> stackFrames;
 
-        public MethodRef (ClassRef owner,
-                          String name,
-                          String typeFullName,
-                          ArrayList<MemberIdentify> identifies,
-                          boolean deprecated,
-                          ArrayList<Integer> annotations,
-                          String signature,
-                          ArrayList<Byte> code,
-                          ArrayList<ClassRef> paramTypes,
-                          ArrayList<ClassRef> exceptionTypes,
-                          ArrayList<LocalVar> localVariableTable,
-                          ArrayList<LocalVarType> localVariableTypeTable,
-                          ArrayList<StackMapTableAttribute.StackMapFrame> stackFrames) {
+        public MethodStore (ClassStore owner,
+                            String name,
+                            String typeFullName,
+                            ArrayList<MemberIdentify> identifies,
+                            boolean deprecated,
+                            ArrayList<Integer> annotations,
+                            String signature,
+                            ArrayList<Byte> code,
+                            ArrayList<ClassStore> paramTypes,
+                            ArrayList<ClassStore> exceptionTypes,
+                            ArrayList<LocalVar> localVariableTable,
+                            ArrayList<LocalVarType> localVariableTypeTable,
+                            ArrayList<StackMapTableAttribute.StackMapFrame> stackFrames) {
             this.owner = owner;
             this.name = name;
             this.typeFullName = typeFullName;
@@ -1960,8 +1981,8 @@ public class ClassReader implements Closeable {
     }
 
     @SuppressWarnings("FieldMayBeFinal")
-    public static final class FieldRef implements Member {
-        private ClassRef owner;
+    public static final class FieldStore implements Member {
+        private ClassStore owner;
         private String name;
         private String typeFullName;
         private ArrayList<MemberIdentify> identifies;
@@ -1970,13 +1991,13 @@ public class ClassReader implements Closeable {
         @SuppressWarnings("FieldCanBeLocal")
         private String signature;
 
-        public FieldRef (ClassRef owner,
-                         String name,
-                         String typeFullName,
-                         ArrayList<MemberIdentify> identifies,
-                         boolean deprecated,
-                         ArrayList<Integer> annotations,
-                         String signature) {
+        public FieldStore (ClassStore owner,
+                           String name,
+                           String typeFullName,
+                           ArrayList<MemberIdentify> identifies,
+                           boolean deprecated,
+                           ArrayList<Integer> annotations,
+                           String signature) {
             this.owner = owner;
             this.name = name;
             this.typeFullName = typeFullName;

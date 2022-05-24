@@ -11,6 +11,22 @@ public final class InnerClassAttribute extends AttributeInfo {
         private final int innerNameIndex;
         private final int innerClassAccessFlags;
 
+        public int getInnerClassInfoIndex () {
+            return innerClassInfoIndex;
+        }
+
+        public int getOuterClassInfoIndex () {
+            return outerClassInfoIndex;
+        }
+
+        public int getInnerNameIndex () {
+            return innerNameIndex;
+        }
+
+        public int getInnerClassAccessFlags () {
+            return innerClassAccessFlags;
+        }
+
         public InnerClassesInfo (int innerClassInfoIndex, int outerClassInfoIndex, int innerNameIndex, int innerClassAccessFlags) {
             this.innerClassInfoIndex = innerClassInfoIndex;
             this.outerClassInfoIndex = outerClassInfoIndex;
@@ -36,6 +52,14 @@ public final class InnerClassAttribute extends AttributeInfo {
         super(attributeNameIndex, attributeLength);
         this.numberOfClasses = numberOfClasses;
         this.innerClassesInfo = innerClassesInfo;
+    }
+
+    public int getNumberOfClasses () {
+        return numberOfClasses;
+    }
+
+    public ArrayList<InnerClassesInfo> getInnerClassesInfo () {
+        return innerClassesInfo;
     }
 
     @Override
