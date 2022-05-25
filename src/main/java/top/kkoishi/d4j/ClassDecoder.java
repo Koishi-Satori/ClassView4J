@@ -2,6 +2,7 @@ package top.kkoishi.d4j;
 
 import top.kkoishi.d4j.attr.InnerClassAttribute;
 import top.kkoishi.d4j.attr.SourceFileAttribute;
+import top.kkoishi.d4j.cp.ConstClassInfo;
 import top.kkoishi.d4j.cp.ConstUtf8Info;
 
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ClassDecoder {
-    public static final ClassReader.ClassFileAccessFlag[] DEFAULT_FLAGS = {
+    static final ClassReader.ClassFileAccessFlag[] DEFAULT_FLAGS = {
             ClassReader.ClassFileAccessFlag.PUBLIC,
             ClassReader.ClassFileAccessFlag.FINAL,
             ClassReader.ClassFileAccessFlag.SUPER,
@@ -20,6 +21,18 @@ public class ClassDecoder {
             ClassReader.ClassFileAccessFlag.ANNOTATION,
             ClassReader.ClassFileAccessFlag.ENUM,
             ClassReader.ClassFileAccessFlag.MODULE
+    };
+
+    static final ClassReader.FieldAccessFlag[] DEFAULT_IDENTIFIES = {
+            ClassReader.FieldAccessFlag.PUBLIC,
+            ClassReader.FieldAccessFlag.PRIVATE,
+            ClassReader.FieldAccessFlag.PROTECTED,
+            ClassReader.FieldAccessFlag.STATIC,
+            ClassReader.FieldAccessFlag.FINAL,
+            ClassReader.FieldAccessFlag.VOLATILE,
+            ClassReader.FieldAccessFlag.TRANSIENT,
+            ClassReader.FieldAccessFlag.TRANSIENT,
+            ClassReader.FieldAccessFlag.ENUM
     };
 
     protected int majorBytecodeVersion;
@@ -32,6 +45,7 @@ public class ClassDecoder {
     protected ArrayList<FieldInfo> fieldTable;
     protected ArrayList<MethodInfo> methodTable;
     protected ArrayList<AttributeInfo> classFileAttributeTable;
+    protected final ArrayList<ClassReader.Annotation> annotations = new ArrayList<>(4);
 
     protected ClassDecoder (int majorBytecodeVersion,
                             int minorBytecodeVersion, ArrayList<ConstPoolInfo> cpInfo,
@@ -86,13 +100,13 @@ public class ClassDecoder {
 
     public ClassResult decode () throws IllegalFileAttributeException {
         final ClassResult classResult = new ClassResult();
-        classResult.fileAccessFlags = decodeAccessFlags(accessFlags);
+        classResult.fileAccessFlags = decodeClassAccessFlags(accessFlags);
 
         // TODO: 2022/5/24 decode data.
         return null;
     }
 
-    protected Map<String, Object> decodeFileAttributeTable () {
+    protected Map<String, Object> decodeFileAttributeTable () throws IllegalFileAttributeException {
         final Map<String, ArrayList<AttributeInfo>> attributeMap = new HashMap<>(4 * classFileAttributeTable.size());
         for (final AttributeInfo attributeInfo : classFileAttributeTable) {
             final String name = ((ConstUtf8Info) cpInfo.get(attributeInfo.attributeNameIndex - 1)).getUtf8();
@@ -122,23 +136,54 @@ public class ClassDecoder {
                     // class's simple name.
                     // At last, the remained field stores the access flags of the inner class,
                     // and it can be decoded using decodeAccessFlags(I);Ljava/util/ArrayList method.
-
+                    final String thisFullName = ((ConstUtf8Info) cpInfo.get(((ConstClassInfo) cpInfo.get(info.getInnerClassInfoIndex()
+                            - 1)).getIndex() - 1)).getUtf8();
+                    final String superFullName = ((ConstUtf8Info) cpInfo.get(((ConstClassInfo) cpInfo.get(info.getOuterClassInfoIndex() - 1)).getIndex() - 1)).getUtf8();
+                    final String name = ((ConstUtf8Info) cpInfo.get(info.getInnerNameIndex() - 1)).getUtf8();
+                    final ArrayList<ClassReader.ClassFileAccessFlag> accessFlags = decodeClassAccessFlags(info.getInnerClassAccessFlags());
+                    innerClasses.add(new InnerClass(name, thisFullName, superFullName, accessFlags));
                 }
             }
-            realAttributeMap.put("InnerClasses", new ArrayList<String>());
+            realAttributeMap.put("InnerClasses", innerClasses);
         }
+        if ((cursor = attributeMap.get("Deprecated")) != null) {
+            realAttributeMap.put("Deprecated", true);
+        }
+        // TODO: 2022/5/24 finish other class attribute_info
         return realAttributeMap;
     }
 
     protected ArrayList<ClassReader.FieldStore> decodeFields () {
         final ArrayList<ClassReader.FieldStore> fields = new ArrayList<>(fieldTable.size());
         for (final FieldInfo fieldInfo : fieldTable) {
-            // decode data
+            // The way to decode field:
+            // The first field of field_info is its access_flags, they are defined as
+            // FIELD_ACCESS_FLAG_ACC_xxx in ClassReader.class.
+            // What important is, the field access_flags is same as method access_flags,
+            // so we need to build it as an ArrayList of MemberIdentify.
+            // The second one is the name index, which pointed to CONSTANT_Utf8_info in const_pool.
+            // Then is the descriptor of field_info, it can be used to get the type of the field.
+            // We use L+full_qualified_name to represent a class, like Ljava/lang/String.
+            // Basic types has been defined in ClassReader.class, and we use '[' to identify array types.
+            // the fourth field is the count of attribute, it is not important.
+            // At last, it comes to attribute_table, the field_info structure supports next attribute types:
+            // Deprecated, ConstantValue, Synthetic, Signature, RuntimeVisibleAnnotations,
+            // RuntimeVisibleTypeAnnotations, RuntimeInvisibleAnnotations, RuntimeInvisibleTypeAnnotations.
+
         }
         return fields;
     }
 
-    protected static ArrayList<ClassReader.ClassFileAccessFlag> decodeAccessFlags (int accessFlags)
+    protected static ArrayList<ClassReader.FieldAccessFlag> decodeMemberAccessFlags (int accessFlags) throws IllegalFileAttributeException {
+        if (accessFlags < 0) {
+            throw new IllegalFileAttributeException("The access_flags in method and field must be greater than 0.");
+        }
+        final ArrayList<ClassReader.FieldAccessFlag> memberIdentifies = new ArrayList<>(2);
+
+        return memberIdentifies;
+    }
+
+    protected static ArrayList<ClassReader.ClassFileAccessFlag> decodeClassAccessFlags (int accessFlags)
             throws IllegalFileAttributeException {
         if (accessFlags <= 0) {
             throw new IllegalFileAttributeException("The access_flags must be greater than 0!");
@@ -180,7 +225,7 @@ public class ClassDecoder {
         }
 
         public void changeAccessFlags (int accessFlag) throws IllegalFileAttributeException {
-            changeAccessFlags(decodeAccessFlags(accessFlag).toArray(ClassReader.ClassFileAccessFlag[]::new));
+            changeAccessFlags(decodeClassAccessFlags(accessFlag).toArray(ClassReader.ClassFileAccessFlag[]::new));
         }
 
         public void setMajorBytecodeVersion (int major) throws IllegalFileAttributeException {

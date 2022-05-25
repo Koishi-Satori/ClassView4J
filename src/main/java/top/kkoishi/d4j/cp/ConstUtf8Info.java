@@ -2,6 +2,8 @@ package top.kkoishi.d4j.cp;
 
 import top.kkoishi.d4j.ConstPoolInfo;
 
+import java.nio.charset.StandardCharsets;
+
 public final class ConstUtf8Info extends ConstPoolInfo {
     private final byte[] bytes;
 
@@ -22,6 +24,14 @@ public final class ConstUtf8Info extends ConstPoolInfo {
 
     public String getUtf8 () {
         return new String(bytes);
+    }
+
+    public byte[] getBytes () {
+        return bytes;
+    }
+
+    public int length () {
+        return new String(bytes, StandardCharsets.UTF_8).length();
     }
 
     @Override

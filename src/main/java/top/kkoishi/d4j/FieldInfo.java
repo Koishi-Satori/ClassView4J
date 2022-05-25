@@ -2,6 +2,9 @@ package top.kkoishi.d4j;
 
 import java.util.ArrayList;
 
+/**
+ * @author KKoishi_
+ */
 public final class FieldInfo {
     private final int accessFlags;
     private final int nameIndex;

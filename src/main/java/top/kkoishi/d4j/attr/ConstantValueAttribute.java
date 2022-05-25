@@ -10,6 +10,10 @@ public final class ConstantValueAttribute extends AttributeInfo {
         this.constantValueIndex = constantValueIndex;
     }
 
+    public int getConstantValueIndex () {
+        return constantValueIndex;
+    }
+
     @Override
     public String toString () {
         return "ConstantValueInfo{" +

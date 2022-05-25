@@ -19,5 +19,6 @@ public final class Test {
         final ClassReader classReader = new ClassReader(bits);
         classReader.read();
         ClassReader.report(classReader);
+        System.out.println(classReader.getFullQualifiedName());
     }
 }

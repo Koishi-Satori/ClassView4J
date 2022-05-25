@@ -67,6 +67,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
+ * The class reader class, used to read data from jvm bytecode.
+ * <pre>
+ *     The class file structure:
+ *     File magic number(0XCAFEBABE)
+ *     minor bytecode version and major bytecode version(u2)
+ *     const_pool counter(u2) the size of const_pool + 1
+ *     const_pool
+ *     access_flags
+ *     this_class_info and super_class_info(u2, pointer pointed to CONSTANT_class_info in const_pool)
+ *     interfaces_count(u2, the amount of interfaces)
+ *     interfaces(u2 array, store the pointer pointed to CONSTANT_class_info in const_pool)
+ *     fields_count(u2, the size of fields table)
+ *     fields
+ *     methods_count(u2, the size of methods table)
+ *     methods
+ *     attributes_count(u2)
+ *     attributes
+ * </pre>
+ *
  * @author KKoishi_
  */
 @SuppressWarnings("unused")
@@ -183,6 +202,10 @@ public class ClassReader implements Closeable {
 
     public ArrayList<AttributeInfo> getClassFileAttributeTable () {
         return classFileAttributeTable;
+    }
+
+    public String getFullQualifiedName () {
+        return ((ConstUtf8Info) cpInfo.get(((ConstClassInfo) cpInfo.get(toInt(thisClassIndex) - 1)).getIndex() - 1)).getUtf8();
     }
 
     public void read () throws DecompilerException {
@@ -1543,20 +1566,25 @@ public class ClassReader implements Closeable {
         }
     }
 
-    public enum MemberIdentify {
+    public enum MethodAccessFlag {
+        SYNTHETIC
+
+    }
+
+    public enum FieldAccessFlag {
         PUBLIC(FIELD_ACCESS_FLAG_ACC_PUBLIC, "public"),
-        FINAL(FIELD_ACCESS_FLAG_ACC_FINAL, "final"),
         PRIVATE(FIELD_ACCESS_FLAG_ACC_PRIVATE, "private"),
         PROTECTED(FIELD_ACCESS_FLAG_ACC_PROTECTED, "protected"),
         STATIC(FIELD_ACCESS_FLAG_ACC_STATIC, "static"),
-        SYNTHETIC(ACC_SYNTHETIC, "undefined"),
-        TRANSIENT(FIELD_ACCESS_FLAG_ACC_TRANSIENT, "transient"),
+        FINAL(FIELD_ACCESS_FLAG_ACC_FINAL, "final"),
         VOLATILE(FIELD_ACCESS_FLAG_ACC_VOLATILE, "volatile"),
+        TRANSIENT(FIELD_ACCESS_FLAG_ACC_TRANSIENT, "transient"),
+        SYNTHETIC(ACC_SYNTHETIC, "undefined"),
         ENUM(FIELD_ACCESS_FLAG_ACC_ENUM, "undefined");
         final int accessFlag;
         final String readableName;
 
-        MemberIdentify (int accessFlag, String readableName) {
+        FieldAccessFlag (int accessFlag, String readableName) {
             this.accessFlag = accessFlag;
             this.readableName = readableName;
         }
@@ -1576,10 +1604,6 @@ public class ClassReader implements Closeable {
         String getName ();
 
         boolean isSynthetic ();
-
-        ArrayList<MemberIdentify> getIdentifies ();
-
-        void setIdentifies (MemberIdentify... identifies);
 
         boolean isDeprecated ();
 
@@ -1636,7 +1660,7 @@ public class ClassReader implements Closeable {
         private String name;
         private String typeFullName;
         private String superClassName;
-        private ArrayList<MemberIdentify> identifies;
+        private ArrayList<FieldAccessFlag> identifies;
         private boolean deprecated;
         private int[] annotations;
         private String signature;
@@ -1655,7 +1679,7 @@ public class ClassReader implements Closeable {
         public ClassStore (String name,
                            String typeFullName,
                            String superClassName,
-                           ArrayList<MemberIdentify> identifies,
+                           ArrayList<FieldAccessFlag> identifies,
                            boolean deprecated, int[] annotations,
                            String signature,
                            ArrayList<Annotation> annotationTable,
@@ -1701,11 +1725,11 @@ public class ClassReader implements Closeable {
             return new ArrayList<>(annotationTable);
         }
 
-        public ArrayList<MemberIdentify> getIdentifies () {
+        public ArrayList<FieldAccessFlag> getIdentifies () {
             return identifies;
         }
 
-        public void setIdentifies (ArrayList<MemberIdentify> identifies) {
+        public void setIdentifies (ArrayList<FieldAccessFlag> identifies) {
             this.identifies = identifies;
         }
 
@@ -1755,7 +1779,7 @@ public class ClassReader implements Closeable {
         private ClassStore owner;
         private String name;
         private String typeFullName;
-        private ArrayList<MemberIdentify> identifies;
+        private ArrayList<MethodAccessFlag> identifies;
         private boolean deprecated;
         private ArrayList<Integer> annotations;
         private String signature;
@@ -1769,7 +1793,7 @@ public class ClassReader implements Closeable {
         public MethodStore (ClassStore owner,
                             String name,
                             String typeFullName,
-                            ArrayList<MemberIdentify> identifies,
+                            ArrayList<MethodAccessFlag> identifies,
                             boolean deprecated,
                             ArrayList<Integer> annotations,
                             String signature,
@@ -1806,16 +1830,14 @@ public class ClassReader implements Closeable {
 
         @Override
         public boolean isSynthetic () {
-            return identifies.contains(MemberIdentify.SYNTHETIC);
+            return identifies.contains(MethodAccessFlag.SYNTHETIC);
         }
 
-        @Override
-        public ArrayList<MemberIdentify> getIdentifies () {
+        public ArrayList<MethodAccessFlag> getIdentifies () {
             return identifies;
         }
 
-        @Override
-        public void setIdentifies (MemberIdentify... identifies) {
+        public void setIdentifies (MethodAccessFlag... identifies) {
             this.identifies.clear();
             this.identifies.addAll(Arrays.asList(identifies));
         }
@@ -1985,7 +2007,7 @@ public class ClassReader implements Closeable {
         private ClassStore owner;
         private String name;
         private String typeFullName;
-        private ArrayList<MemberIdentify> identifies;
+        private ArrayList<FieldAccessFlag> identifies;
         private boolean deprecated;
         private ArrayList<Integer> annotations;
         @SuppressWarnings("FieldCanBeLocal")
@@ -1994,7 +2016,7 @@ public class ClassReader implements Closeable {
         public FieldStore (ClassStore owner,
                            String name,
                            String typeFullName,
-                           ArrayList<MemberIdentify> identifies,
+                           ArrayList<FieldAccessFlag> identifies,
                            boolean deprecated,
                            ArrayList<Integer> annotations,
                            String signature) {
@@ -2019,16 +2041,14 @@ public class ClassReader implements Closeable {
 
         @Override
         public boolean isSynthetic () {
-            return identifies.contains(MemberIdentify.SYNTHETIC);
+            return identifies.contains(FieldAccessFlag.SYNTHETIC);
         }
 
-        @Override
-        public ArrayList<MemberIdentify> getIdentifies () {
+        public ArrayList<FieldAccessFlag> getIdentifies () {
             return identifies;
         }
 
-        @Override
-        public void setIdentifies (MemberIdentify... identifies) {
+       public void setIdentifies (FieldAccessFlag... identifies) {
             this.identifies.clear();
             this.identifies.addAll(Arrays.asList(identifies));
         }

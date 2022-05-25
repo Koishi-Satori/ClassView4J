@@ -1,5 +1,6 @@
 package top.kkoishi.d4j.cp;
 
+import top.kkoishi.d4j.ClassReader;
 import top.kkoishi.d4j.ConstPoolInfo;
 
 import java.util.Arrays;
@@ -23,6 +24,10 @@ public final class ConstClassInfo extends ConstPoolInfo {
     @Override
     public Object data () {
         return index;
+    }
+
+    public int getIndex () {
+        return ClassReader.toInt(index);
     }
 
     @Override
