@@ -1,5 +1,7 @@
 package top.kkoishi.d4j;
 
+import java.util.Collection;
+
 class ByteBuffer {
     private byte[] bytes = new byte[0];
     private int elementCount = 0;
@@ -12,6 +14,13 @@ class ByteBuffer {
     void appendAll (byte[] vs) {
         grow(vs.length);
         for (final byte v : vs) {
+            bytes[elementCount++] = v;
+        }
+    }
+
+    void appendAll (Collection<Byte> c) {
+        grow(c.size());
+        for (final byte v : c) {
             bytes[elementCount++] = v;
         }
     }

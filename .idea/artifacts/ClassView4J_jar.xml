@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ClassView4J:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/ClassView4J_jar</output-path>
+    <root id="archive" name="ClassView4J.jar">
+      <element id="module-output" name="ClassView4J" />
+    </root>
+  </artifact>
+</component>

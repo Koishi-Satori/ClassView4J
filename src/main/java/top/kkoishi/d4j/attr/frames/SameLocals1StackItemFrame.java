@@ -11,6 +11,10 @@ public final class SameLocals1StackItemFrame extends StackMapTableAttribute.Stac
         this.stack = stack;
     }
 
+    public VerificationTypeInfo getStack () {
+        return stack;
+    }
+
     @Override
     public String toString () {
         return "SameLocals1StackItemFrame{" +

@@ -24,8 +24,10 @@ public final class LineNumberTableAttribute extends AttributeInfo {
 
     @Override
     public String toString () {
-        return "LineNumberTableInfo{" +
-                "lineNumberTableLength=" + lineNumberTableLength +
+        return "LineNumberTableAttribute{" +
+                "attributeNameIndex=" + attributeNameIndex +
+                ", attributeLength=" + attributeLength +
+                ", lineNumberTableLength=" + lineNumberTableLength +
                 ", lineNumberTable=" + Arrays.toString(lineNumberTable) +
                 '}';
     }

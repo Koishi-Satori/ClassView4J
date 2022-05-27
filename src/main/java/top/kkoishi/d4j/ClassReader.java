@@ -1,32 +1,6 @@
 package top.kkoishi.d4j;
 
-import top.kkoishi.d4j.attr.AnnotationDefaultAttribute;
-import top.kkoishi.d4j.attr.BootstrapMethodsAttribute;
-import top.kkoishi.d4j.attr.ConstantValueAttribute;
-import top.kkoishi.d4j.attr.DeprecatedAttribute;
-import top.kkoishi.d4j.attr.EnclosingMethodAttribute;
-import top.kkoishi.d4j.attr.ExceptionsAttribute;
-import top.kkoishi.d4j.attr.InnerClassAttribute;
-import top.kkoishi.d4j.attr.LineNumberTableAttribute;
-import top.kkoishi.d4j.attr.LocalVariableTableAttribute;
-import top.kkoishi.d4j.attr.LocalVariableTypeAttribute;
-import top.kkoishi.d4j.attr.MethodParametersAttribute;
-import top.kkoishi.d4j.attr.ModuleAttribute;
-import top.kkoishi.d4j.attr.ModuleMainClassAttribute;
-import top.kkoishi.d4j.attr.ModulePackagesAttribute;
-import top.kkoishi.d4j.attr.NestHostAttribute;
-import top.kkoishi.d4j.attr.NestMembersAttribute;
-import top.kkoishi.d4j.attr.PermittedSubclassesAttribute;
-import top.kkoishi.d4j.attr.RecordAttribute;
-import top.kkoishi.d4j.attr.RuntimeAnnotationAttribute;
-import top.kkoishi.d4j.attr.RuntimeInvisibleParameterAnnotationsAttribute;
-import top.kkoishi.d4j.attr.RuntimeTypeAnnotationAttribute;
-import top.kkoishi.d4j.attr.RuntimeVisibleParameterAnnotationsAttribute;
-import top.kkoishi.d4j.attr.SourceDebugExtensionAttribute;
-import top.kkoishi.d4j.attr.SourceFileAttribute;
-import top.kkoishi.d4j.attr.StackMapTableAttribute;
-import top.kkoishi.d4j.attr.SyntheticAttribute;
-import top.kkoishi.d4j.attr.CodeAttribute;
+import top.kkoishi.d4j.attr.*;
 import top.kkoishi.d4j.attr.frames.AppendFrames;
 import top.kkoishi.d4j.attr.frames.ChopFrame;
 import top.kkoishi.d4j.attr.frames.FullFrame;
@@ -116,7 +90,7 @@ public class ClassReader implements Closeable {
     public static final int FIELD_ACCESS_FLAG_ACC_PUBLIC = 0X0001;
     public static final int FIELD_ACCESS_FLAG_ACC_PRIVATE = 0X0002;
     public static final int FIELD_ACCESS_FLAG_ACC_PROTECTED = 0X0004;
-    public static final int FIELD_ACCESS_FLAG_ACC_STATIC = 0X0005;
+    public static final int FIELD_ACCESS_FLAG_ACC_STATIC = 0X0008;
     public static final int FIELD_ACCESS_FLAG_ACC_FINAL = 0X0010;
     public static final int FIELD_ACCESS_FLAG_ACC_VOLATILE = 0X0040;
     public static final int FIELD_ACCESS_FLAG_ACC_TRANSIENT = 0X0080;
@@ -134,6 +108,9 @@ public class ClassReader implements Closeable {
     public static final int METHOD_ACCESS_FLAG_ACC_ABSTRACT = 0X0400;
     public static final int METHOD_ACCESS_FLAG_ACC_STRICT = 0X0800;
     public static final int METHOD_ACCESS_FLAG_ACC_SYNTHETIC = 0X1000;
+    public static final int METHOD_PARAMETERS_ACC_FINAL = 0X0010;
+    public static final int METHOD_PARAMETERS_ACC_SYNTHETIC = 0X1000;
+    public static final int METHOD_PARAMETERS_ACC_MANDATED = 0X8000;
 
     private final ByteReader br;
     protected int constPoolCount = 0;
@@ -399,7 +376,7 @@ public class ClassReader implements Closeable {
                     attributes[i] = new DeprecatedAttribute(attributeNameIndex);
                 }
                 case "Signature": {
-                    attributes[i] = new SignatureInfo(attributeNameIndex, toInt(br.read(2)));
+                    attributes[i] = new SignatureAttribute(attributeNameIndex, toInt(br.read(2)));
                 }
                 case "RuntimeVisibleAnnotations": {
                     final int numAnnotations = toInt(br.read(2));
@@ -440,7 +417,8 @@ public class ClassReader implements Closeable {
         }
         final ArrayList<CodeAttribute.CodeException> codeExceptionTable = new ArrayList<>(exceptionTableLength);
         for (int i = 0; i < exceptionTableLength; i++) {
-            codeExceptionTable.add(new CodeAttribute.CodeException(toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2))));
+            codeExceptionTable.add(new CodeAttribute.CodeException(toInt(br.read(2)),
+                    toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2))));
         }
         return codeExceptionTable;
     }
@@ -701,7 +679,6 @@ public class ClassReader implements Closeable {
                     frames.add(new SameLocals1StackItemFrameExtended(frameType, toInt(br.read(2)), readVerificationTypeInfo()));
                     break;
                 }
-
                 case (byte) 248:
                 case (byte) 249:
                 case (byte) 250: {
@@ -859,7 +836,7 @@ public class ClassReader implements Closeable {
                     break;
                 }
                 case "Signature": {
-                    classFileAttributeTable.add(new SignatureInfo(attributeNameIndex, toInt(br.read(2))));
+                    classFileAttributeTable.add(new SignatureAttribute(attributeNameIndex, toInt(br.read(2))));
                     break;
                 }
                 case "RuntimeVisibleAnnotations": {
@@ -974,7 +951,7 @@ public class ClassReader implements Closeable {
                 final String name1 = ((ConstUtf8Info) cpInfo.get(attributeNameIndex1 - 1)).getUtf8();
                 attributes[k] = switch (name1) {
                     case "Signature": {
-                        yield new SignatureInfo(nameIndex, toInt(br.read(2)));
+                        yield new SignatureAttribute(nameIndex, toInt(br.read(2)));
                     }
                     case "RuntimeVisibleAnnotations": {
                         final int numAnnotation = toInt(br.read(2));
@@ -1122,7 +1099,7 @@ public class ClassReader implements Closeable {
                     break;
                 }
                 case "Signature": {
-                    data.add(new SignatureInfo(nameIndex, toInt(br.read(2))));
+                    data.add(new SignatureAttribute(nameIndex, toInt(br.read(2))));
                     break;
                 }
                 case "Deprecated": {

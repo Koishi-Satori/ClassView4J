@@ -22,6 +22,26 @@ public final class FullFrame extends StackMapTableAttribute.StackMapFrame {
         this.stack = stack;
     }
 
+    public int getOffsetDelta () {
+        return offsetDelta;
+    }
+
+    public int getNumberOfLocals () {
+        return numberOfLocals;
+    }
+
+    public ArrayList<VerificationTypeInfo> getLocals () {
+        return locals;
+    }
+
+    public int getNumberOfStackItems () {
+        return numberOfStackItems;
+    }
+
+    public ArrayList<VerificationTypeInfo> getStack () {
+        return stack;
+    }
+
     @Override
     public String toString () {
         return "FullFrame{" +

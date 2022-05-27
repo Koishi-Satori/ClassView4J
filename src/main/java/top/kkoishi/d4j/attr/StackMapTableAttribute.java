@@ -25,6 +25,10 @@ public final class StackMapTableAttribute extends AttributeInfo {
     public static abstract class StackMapFrame {
         protected final byte frameType;
 
+        public byte getFrameType () {
+            return frameType;
+        }
+
         public StackMapFrame (byte frameType) {
             this.frameType = frameType;
         }
@@ -37,6 +41,14 @@ public final class StackMapTableAttribute extends AttributeInfo {
         super(attributeNameIndex, attributeLength);
         this.numberOfEntries = numberOfEntries;
         this.stackMapFrameEntries = stackMapFrameEntries;
+    }
+
+    public int getNumberOfEntries () {
+        return numberOfEntries;
+    }
+
+    public ArrayList<StackMapFrame> getStackMapFrameEntries () {
+        return stackMapFrameEntries;
     }
 
     @Override

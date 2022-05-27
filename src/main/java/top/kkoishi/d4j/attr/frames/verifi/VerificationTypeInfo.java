@@ -16,6 +16,10 @@ public abstract class VerificationTypeInfo {
 
     protected final byte tag;
 
+    public byte tag () {
+        return tag;
+    }
+
     public VerificationTypeInfo (byte tag) {
         this.tag = tag;
     }

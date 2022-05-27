@@ -15,6 +15,14 @@ public final class AppendFrames extends StackMapTableAttribute.StackMapFrame {
         this.locals = locals;
     }
 
+    public int getOffsetDelta () {
+        return offsetDelta;
+    }
+
+    public ArrayList<VerificationTypeInfo> getLocals () {
+        return locals;
+    }
+
     @Override
     public String toString () {
         return "AppendFrames{" +

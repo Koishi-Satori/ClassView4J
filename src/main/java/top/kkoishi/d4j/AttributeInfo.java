@@ -8,5 +8,13 @@ public abstract class AttributeInfo {
         this.attributeNameIndex = attributeNameIndex;
         this.attributeLength = attributeLength;
     }
+
+    public int getAttributeNameIndex () {
+        return attributeNameIndex;
+    }
+
+    public int getAttributeLength () {
+        return attributeLength;
+    }
 }
 

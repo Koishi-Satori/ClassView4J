@@ -5,6 +5,10 @@ import top.kkoishi.d4j.attr.StackMapTableAttribute;
 public final class ChopFrame extends StackMapTableAttribute.StackMapFrame {
     private final int offsetDelta;
 
+    public int getOffsetDelta () {
+        return offsetDelta;
+    }
+
     public ChopFrame (byte frameType, int offsetDelta) {
         super(frameType);
         this.offsetDelta = offsetDelta;

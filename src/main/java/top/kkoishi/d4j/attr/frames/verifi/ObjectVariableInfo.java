@@ -2,6 +2,7 @@ package top.kkoishi.d4j.attr.frames.verifi;
 
 public final class ObjectVariableInfo extends VerificationTypeInfo {
     private final int cpoolIndex;
+
     public ObjectVariableInfo (int cpoolIndex) {
         super(OBJECT_VARIABLE_INFO);
         this.cpoolIndex = cpoolIndex;

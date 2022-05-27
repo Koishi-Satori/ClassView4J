@@ -10,6 +10,10 @@ public final class SameFrameExtended extends StackMapTableAttribute.StackMapFram
         this.offsetDelta = offsetDelta;
     }
 
+    public int getOffsetDelta () {
+        return offsetDelta;
+    }
+
     @Override
     public String toString () {
         return "SameFrameExtended{" +

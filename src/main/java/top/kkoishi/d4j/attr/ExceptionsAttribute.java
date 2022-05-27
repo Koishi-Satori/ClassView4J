@@ -32,6 +32,14 @@ public final class ExceptionsAttribute extends AttributeInfo{
         this.exceptionIndexTable = exceptionIndexTable;
     }
 
+    public int getNumberOfExceptions () {
+        return numberOfExceptions;
+    }
+
+    public ExceptionIndexTable[] getExceptionIndexTable () {
+        return exceptionIndexTable;
+    }
+
     @Override
     public String toString () {
         return "ExceptionsInfo{" +

@@ -1,11 +1,17 @@
-package top.kkoishi.d4j;
+package top.kkoishi.d4j.attr;
 
-public final class SignatureInfo extends AttributeInfo {
+import top.kkoishi.d4j.AttributeInfo;
+
+public final class SignatureAttribute extends AttributeInfo {
     private final int signatureIndex;
 
-    public SignatureInfo (int attributeNameIndex, int signatureIndex) {
+    public SignatureAttribute (int attributeNameIndex, int signatureIndex) {
         super(attributeNameIndex, 2);
         this.signatureIndex = signatureIndex;
+    }
+
+    public int getSignatureIndex () {
+        return signatureIndex;
     }
 
     @Override

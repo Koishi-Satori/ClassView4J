@@ -7,6 +7,14 @@ public final class SameLocals1StackItemFrameExtended extends StackMapTableAttrib
     private final int offsetDelta;
     private final VerificationTypeInfo stack;
 
+    public int getOffsetDelta () {
+        return offsetDelta;
+    }
+
+    public VerificationTypeInfo getStack () {
+        return stack;
+    }
+
     public SameLocals1StackItemFrameExtended (byte frameType, int offsetDelta, VerificationTypeInfo stack) {
         super(frameType);
         this.offsetDelta = offsetDelta;
