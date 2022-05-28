@@ -1,6 +1,33 @@
 package top.kkoishi.d4j;
 
-import top.kkoishi.d4j.attr.*;
+import top.kkoishi.d4j.attr.AnnotationDefaultAttribute;
+import top.kkoishi.d4j.attr.BootstrapMethodsAttribute;
+import top.kkoishi.d4j.attr.CodeAttribute;
+import top.kkoishi.d4j.attr.ConstantValueAttribute;
+import top.kkoishi.d4j.attr.DeprecatedAttribute;
+import top.kkoishi.d4j.attr.EnclosingMethodAttribute;
+import top.kkoishi.d4j.attr.ExceptionsAttribute;
+import top.kkoishi.d4j.attr.InnerClassAttribute;
+import top.kkoishi.d4j.attr.LineNumberTableAttribute;
+import top.kkoishi.d4j.attr.LocalVariableTableAttribute;
+import top.kkoishi.d4j.attr.LocalVariableTypeAttribute;
+import top.kkoishi.d4j.attr.MethodParametersAttribute;
+import top.kkoishi.d4j.attr.ModuleAttribute;
+import top.kkoishi.d4j.attr.ModuleMainClassAttribute;
+import top.kkoishi.d4j.attr.ModulePackagesAttribute;
+import top.kkoishi.d4j.attr.NestHostAttribute;
+import top.kkoishi.d4j.attr.NestMembersAttribute;
+import top.kkoishi.d4j.attr.PermittedSubclassesAttribute;
+import top.kkoishi.d4j.attr.RecordAttribute;
+import top.kkoishi.d4j.attr.RuntimeAnnotationAttribute;
+import top.kkoishi.d4j.attr.RuntimeInvisibleParameterAnnotationsAttribute;
+import top.kkoishi.d4j.attr.RuntimeTypeAnnotationAttribute;
+import top.kkoishi.d4j.attr.RuntimeVisibleParameterAnnotationsAttribute;
+import top.kkoishi.d4j.attr.SignatureAttribute;
+import top.kkoishi.d4j.attr.SourceDebugExtensionAttribute;
+import top.kkoishi.d4j.attr.SourceFileAttribute;
+import top.kkoishi.d4j.attr.StackMapTableAttribute;
+import top.kkoishi.d4j.attr.SyntheticAttribute;
 import top.kkoishi.d4j.attr.frames.AppendFrames;
 import top.kkoishi.d4j.attr.frames.ChopFrame;
 import top.kkoishi.d4j.attr.frames.FullFrame;
@@ -64,69 +91,403 @@ import java.util.Arrays;
  */
 @SuppressWarnings("unused")
 public class ClassReader implements Closeable {
+    /**
+     * The file magic number of a jvm class file.
+     */
     public static final byte[] FILE_HEAD = new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE};
+
+    /**
+     * The public access_flag of class file.
+     */
     public static final int ACC_PUBLIC = 0X0001;
+
+    /**
+     * The final access_flag of class file.
+     */
     public static final int ACC_FINAL = 0X0010;
+
+    /**
+     * An access_flag of class file.
+     * Before jdk 1.2, this is always false, and latest version is always true.
+     */
     public static final int ACC_SUPER = 0X0020;
+
+    /**
+     * The interface access_flag of class file.
+     * This is only used by interface class.
+     */
     public static final int ACC_INTERFACE = 0X0200;
+
+    /**
+     * The abstract access_flag of class file.
+     * The abstract class must take this.
+     */
     public static final int ACC_ABSTRACT = 0X0400;
+
+    /**
+     * The synthetic access_flag of class file, and this is only used by jvm.
+     */
     public static final int ACC_SYNTHETIC = 0X1000;
+
+    /**
+     * The annotation access_flag of class file.
+     * It is only used by annotation class.
+     */
     public static final int ACC_ANNOTATION = 0X2000;
+
+    /**
+     * The enum access_flag of class file, used to mark if the class is enum.
+     */
     public static final int ACC_ENUM = 0X4000;
+
+    /**
+     * The module access_flag of module class file.
+     */
     public static final int ACC_MODULE = 0X8000;
+
+    /**
+     * The byte type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Integer.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_BYTE = 'B';
+
+    /**
+     * The char type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Integer.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_CHAR = 'C';
+
+    /**
+     * The double type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Double.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_DOUBLE = 'D';
+
+    /**
+     * The float type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Float.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_FLOAT = 'F';
+
+    /**
+     * The int type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Integer.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_INT = 'I';
+
+    /**
+     * The long type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Long.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_LONG = 'J';
+
+    /**
+     * The short type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Short.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_SHORT = 'S';
+
+    /**
+     * The boolean type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_Boolean.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_BOOLEAN = 'Z';
+
+    /**
+     * The String type element_value::value.
+     * The corresponding value structure is const_value,
+     * and its constant type is CONSTANT_String.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_STRING = 's';
+
+    /**
+     * The enum type element_value::value.
+     * The corresponding value structure is enum_const_value,
+     * and its constant type is not applicable.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_ENUM_CLASS = 'e';
+
+    /**
+     * The class type element_value::value.
+     * The corresponding value structure is class_info_value,
+     * and its constant type is not applicable.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_CLASS = 'c';
+    /**
+     * The annotation type element_value::value.
+     * The corresponding value structure is annotation_value,
+     * and its constant type is not applicable.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_ANNOTATION_INTERFACE = '@';
+
+    /**
+     * The array type element_value::value.
+     * The corresponding value structure is array_value,
+     * and its constant type is not applicable.
+     *
+     * @see top.kkoishi.d4j.attr.RuntimeAnnotationAttribute.Annotation.ElementValuePairs.ElementValue.Value
+     */
     public static final byte ELEMENT_VALUE_TYPE_ARRAY_TYPE = '[';
+
+    /**
+     * The public access_flag of field_info used to illustrate
+     * the field has public access.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_PUBLIC = 0X0001;
+
+    /**
+     * The private access_flag of field_info used to illustrate
+     * the field has private access.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_PRIVATE = 0X0002;
+
+    /**
+     * The protected access_flag of field_info used to illustrate
+     * the field has protected access.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_PROTECTED = 0X0004;
+
+    /**
+     * The static access_flag of field_info used to illustrate
+     * the field is static.(Can only accessed by static method,
+     * block, etc.)
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_STATIC = 0X0008;
+
+    /**
+     * The final access_flag of the field_info used to illustrate
+     * the field is final.(Can not be replaced by new instance in
+     * common method, except using
+     * {@link sun.misc.Unsafe#compareAndSwapObject(Object, long, Object, Object)}
+     * to force replace.)
+     */
+
     public static final int FIELD_ACCESS_FLAG_ACC_FINAL = 0X0010;
+
+    /**
+     * The volatile access_flag of the field_info to illustrate
+     * the field is volatile.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_VOLATILE = 0X0040;
+
+    /**
+     * The transient access_flag of the field_info to illustrate
+     * the field is transient.(Ignored while serialization processing)
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_TRANSIENT = 0X0080;
+
+    /**
+     * This access_flag is used by jvm to make sure the field accessibility
+     * is correctly implemented.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_SYNTHETIC = 0X1000;
+
+    /**
+     * The enum access_flag is used to illustrate the field is enum type.
+     */
     public static final int FIELD_ACCESS_FLAG_ACC_ENUM = 0X4000;
+
+    /**
+     * Illustrate the method is public access.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_PUBLIC = 0X0001;
+
+    /**
+     * Illustrate the method is private access.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_PRIVATE = 0X0002;
+
+    /**
+     * Illustrate the method is protected.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_PROTECTED = 0X0004;
+
+    /**
+     * Illustrate the method is a static method.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_STATIC = 0X0008;
+
+    /**
+     * Illustrate the method is final.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_FINAL = 0X0010;
+
+    /**
+     * Illustrate the method is decorated by synchronized keyword.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_SYNCHRONIZED = 0X0020;
+
+    /**
+     * JVM use, generated by compiler.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_BRIDGE = 0X0040;
+
+    /**
+     * Declared with variable number of arguments.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_VARARGS = 0X0080;
+
+    /**
+     * Illustrate the method is a native method.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_NATIVE = 0X0100;
+
+    /**
+     * Illustrate the method is abstract.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_ABSTRACT = 0X0400;
+
+    /**
+     * Illustrate the method is a strictfp method, one of java keywords.
+     * This is used to tell jvm to use strict float-point while invoking
+     * the method.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_STRICT = 0X0800;
+
+    /**
+     * Generated by compiler and used by JVM.
+     */
     public static final int METHOD_ACCESS_FLAG_ACC_SYNTHETIC = 0X1000;
+
+    /**
+     * Illustrate the method parameter is final.
+     */
     public static final int METHOD_PARAMETERS_ACC_FINAL = 0X0010;
+
+    /**
+     * Illustrate the method parameter is synthetic.This is used by JVM and
+     * generated by compiler.
+     */
     public static final int METHOD_PARAMETERS_ACC_SYNTHETIC = 0X1000;
+
+    /**
+     * Indicates that the formal parameter was implicitly declared in source code.
+     */
     public static final int METHOD_PARAMETERS_ACC_MANDATED = 0X8000;
 
+    /**
+     * The ByteReader used to view the input bytes.
+     */
     private final ByteReader br;
+
+    /**
+     * The size of const_pool.
+     */
     protected int constPoolCount = 0;
+
+    /**
+     * The major bytecode version.
+     */
     protected int majorBytecodeVersion = 0x0052;
+
+    /**
+     * The minor bytecode version.
+     */
     protected int minorBytecodeVersion = 0x0000;
+
+    /**
+     * Const_pool of a compiled class file.
+     */
     protected ArrayList<ConstPoolInfo> cpInfo;
+
+    /**
+     * The class file access_flags.
+     */
     protected int accessFlags = ACC_PUBLIC + ACC_SUPER;
+
+    /**
+     * A byte array which its length is 2. And after converted to unsigned int, this is the index of
+     * one CONSTANT_Class_info in const_pool.
+     * <br>
+     * This is used to index the full-qualified-name of this class.
+     */
     protected byte[] thisClassIndex;
+
+    /**
+     * A byte array which its length is 2. And after converted to unsigned int, this is the index of
+     * one CONSTANT_Class_info in const_pool.
+     * <br>
+     * This is used to index the full-qualified-name of super class.
+     * <br>
+     * <b>If this is zero, then the super class is java.lang.Object.</b>
+     */
     protected byte[] superClassIndex;
+
+    /**
+     * The size of interfaces.
+     */
     protected int interfaceCount = 0;
+
+    /**
+     * The interfaces table stored the index of CONSTANT_Class_info in
+     * const_pool.
+     * And this stores the implemented interfaces.
+     */
     protected ArrayList<Integer> interfaceIndexes;
+
+    /**
+     * The field_info table count.
+     */
     protected int fieldsCount = 0;
+
+    /**
+     * The field_info table.
+     * This table stores all the fields of the class.
+     */
     protected ArrayList<FieldInfo> fieldTable;
+
+    /**
+     * The method_info table count.
+     */
     protected int methodsCount = 0;
+
+    /**
+     * The method_info table.
+     * This table stores all the methods of the class.
+     */
     protected ArrayList<MethodInfo> methodTable;
+
+    /**
+     * The additional file attributes amount.
+     */
     protected int classFileAttributesCount;
+
+    /**
+     * The additional file attribute_info table, it stores some extended
+     * attributes like SourceFile_attribute(used to store the source file name).
+     */
     protected ArrayList<AttributeInfo> classFileAttributeTable;
 
     private ClassReader (ByteReader br) {
@@ -185,6 +546,11 @@ public class ClassReader implements Closeable {
         return ((ConstUtf8Info) cpInfo.get(((ConstClassInfo) cpInfo.get(toInt(thisClassIndex) - 1)).getIndex() - 1)).getUtf8();
     }
 
+    /**
+     * Read the data from the transported byte array.
+     *
+     * @throws DecompilerException while the class file is illegal.
+     */
     public void read () throws DecompilerException {
         readFileInfo();
         readCpInfo();
@@ -2025,7 +2391,7 @@ public class ClassReader implements Closeable {
             return identifies;
         }
 
-       public void setIdentifies (FieldAccessFlag... identifies) {
+        public void setIdentifies (FieldAccessFlag... identifies) {
             this.identifies.clear();
             this.identifies.addAll(Arrays.asList(identifies));
         }

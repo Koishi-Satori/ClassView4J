@@ -1,16 +1,27 @@
 package top.kkoishi.d4j;
 
 import top.kkoishi.d4j.attr.AnnotationDefaultAttribute;
+import top.kkoishi.d4j.attr.BootstrapMethodsAttribute;
 import top.kkoishi.d4j.attr.CodeAttribute;
 import top.kkoishi.d4j.attr.ConstantValueAttribute;
+import top.kkoishi.d4j.attr.EnclosingMethodAttribute;
 import top.kkoishi.d4j.attr.ExceptionsAttribute;
+import top.kkoishi.d4j.attr.InnerClassAttribute;
 import top.kkoishi.d4j.attr.LineNumberTableAttribute;
 import top.kkoishi.d4j.attr.LocalVariableTableAttribute;
 import top.kkoishi.d4j.attr.LocalVariableTypeAttribute;
 import top.kkoishi.d4j.attr.MethodParametersAttribute;
+import top.kkoishi.d4j.attr.ModuleAttribute;
+import top.kkoishi.d4j.attr.ModuleMainClassAttribute;
+import top.kkoishi.d4j.attr.ModulePackagesAttribute;
+import top.kkoishi.d4j.attr.NestHostAttribute;
+import top.kkoishi.d4j.attr.NestMembersAttribute;
+import top.kkoishi.d4j.attr.PermittedSubclassesAttribute;
+import top.kkoishi.d4j.attr.RecordAttribute;
 import top.kkoishi.d4j.attr.RuntimeAnnotationAttribute;
 import top.kkoishi.d4j.attr.RuntimeTypeAnnotationAttribute;
 import top.kkoishi.d4j.attr.SignatureAttribute;
+import top.kkoishi.d4j.attr.SourceDebugExtensionAttribute;
 import top.kkoishi.d4j.attr.SourceFileAttribute;
 import top.kkoishi.d4j.attr.StackMapTableAttribute;
 import top.kkoishi.d4j.attr.frames.AppendFrames;
@@ -61,6 +72,17 @@ class RawClassWriter {
     static final String STACK_MAP_TABLE = "StackMapTable";
     static final String ANNOTATION_DEFAULT = "AnnotationDefault";
     static final String SIGNATURE = "Signature";
+    static final String INNER_CLASSES = "InnerClasses";
+    static final String ENCLOSING_METHOD = "EnclosingMethod";
+    static final String SOURCE_DEBUG_EXTENSION = "SourceDebugExtension";
+    static final String BOOTSTRAP_METHODS = "BootstrapMethods";
+    static final String MODULE = "Module";
+    static final String MODULE_PACKAGES = "ModulePackages";
+    static final String MODULE_MAIN_CLASS = "ModuleMainClass";
+    static final String NEST_HOST = "NestHost";
+    static final String NEST_MEMBERS = "NestMembers";
+    static final String RECORD = "Record";
+    static final String PERMITTED_SUBCLASSES = "PermittedSubclasses";
 
     private byte[] majorBytecodeVersion = {0X00, 0X52};
     private byte[] minorBytecodeVersion = {0X00, 0X00};
@@ -71,7 +93,7 @@ class RawClassWriter {
     public final ArrayList<Integer> interfaces = new ArrayList<>();
     public final ArrayList<FieldInfo> fields = new ArrayList<>();
     public final ArrayList<MethodInfo> methods = new ArrayList<>();
-    public final ArrayList<AttributeInfo> attributeInfos = new ArrayList<>(2);
+    public final ArrayList<AttributeInfo> attributeInfo = new ArrayList<>(2);
     protected ByteBuffer buffer = new ByteBuffer();
     private boolean closed = false;
 
@@ -180,7 +202,7 @@ class RawClassWriter {
 
 
         //write attributes table.
-        buffer.appendAll(to2bytes(attributeInfos.size()));
+        buffer.appendAll(to2bytes(attributeInfo.size()));
         writeClassFileAttributes();
     }
 
@@ -419,7 +441,7 @@ class RawClassWriter {
 
     @SuppressWarnings({"ConstantConditions", "EnhancedSwitchMigration"})
     protected void writeClassFileAttributes () throws IllegalTypeException {
-        for (final AttributeInfo attribute : attributeInfos) {
+        for (final AttributeInfo attribute : attributeInfo) {
             buffer.appendAll(to2bytes(attribute.attributeNameIndex));
             buffer.appendAll(to4bytes(attribute.attributeLength));
             final String name = ((ConstUtf8Info) constPool.get(attribute.attributeNameIndex - 1)).getUtf8();
@@ -470,12 +492,194 @@ class RawClassWriter {
                     buffer.appendAll(to2bytes(((SignatureAttribute) attribute).getSignatureIndex()));
                     break;
                 }
+                case INNER_CLASSES: {
+                    final var castAttr = (InnerClassAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getNumberOfClasses()));
+                    for (final InnerClassAttribute.InnerClassesInfo innerClass : castAttr.getInnerClassesInfo()) {
+                        buffer.appendAll(to2bytes(innerClass.getInnerClassInfoIndex()));
+                        buffer.appendAll(to2bytes(innerClass.getOuterClassInfoIndex()));
+                        buffer.appendAll(to2bytes(innerClass.getInnerNameIndex()));
+                        buffer.appendAll(to2bytes(innerClass.getInnerClassAccessFlags()));
+                    }
+                    break;
+                }
+                case ENCLOSING_METHOD: {
+                    final var castAttr = (EnclosingMethodAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getClassIndex()));
+                    buffer.appendAll(to2bytes(castAttr.getMethodIndex()));
+                    break;
+                }
+                case SOURCE_DEBUG_EXTENSION: {
+                    final var bits = ((SourceDebugExtensionAttribute) attribute).getDebugExtensionTable();
+                    if (bits.length != attribute.attributeLength) {
+                        throw new IllegalTypeException("");
+                    }
+                    buffer.appendAll(bits);
+                    break;
+                }
+                case BOOTSTRAP_METHODS: {
+                    final var castAttr = (BootstrapMethodsAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getNumBootstrapMethods()));
+                    for (final BootstrapMethodsAttribute.BootstrapMethod method : castAttr.getBootstrapMethods()) {
+                        buffer.appendAll(to2bytes(method.getBootstrapMethodRef()));
+                        buffer.appendAll(to2bytes(method.getNumBootstrapArguments()));
+                        for (final int i : method.getBootStrapArguments()) {
+                            buffer.appendAll(to2bytes(i));
+                        }
+                    }
+                    break;
+                }
+                case MODULE: {
+                    final var castAttr = (ModuleAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getModuleNameIndex()));
+                    buffer.appendAll(to2bytes(castAttr.getModuleFlags()));
+                    buffer.appendAll(to2bytes(castAttr.getModuleVersionIndex()));
+                    buffer.appendAll(to2bytes(castAttr.getRequiresCount()));
+                    for (final ModuleAttribute.Require require : castAttr.getRequires()) {
+                        buffer.appendAll(to2bytes(require.getRequiresIndex()));
+                        buffer.appendAll(to2bytes(require.getRequiresFlags()));
+                        buffer.appendAll(to2bytes(require.getRequiresVersionIndex()));
+                    }
+                    //read export, open, uses(int), and provide table.
+                    buffer.appendAll(to2bytes(castAttr.getExportsCount()));
+                    for (final ModuleAttribute.Export export : castAttr.getExports()) {
+                        buffer.appendAll(to2bytes(export.getExportsIndex()));
+                        buffer.appendAll(to2bytes(export.getExportsFlags()));
+                        buffer.appendAll(to2bytes(export.getExportsToCount()));
+                        for (final int exportsToIndex : export.getExportsToIndexes()) {
+                            buffer.appendAll(to2bytes(exportsToIndex));
+                        }
+                    }
+                    buffer.appendAll(to2bytes(castAttr.getOpensCount()));
+                    for (final ModuleAttribute.Open open : castAttr.getOpens()) {
+                        buffer.appendAll(to2bytes(open.getOpensIndex()));
+                        buffer.appendAll(to2bytes(open.getOpensFlags()));
+                        buffer.appendAll(to2bytes(open.getOpensToCount()));
+                        for (final int openTo : open.getOpensToIndexes()) {
+                            buffer.appendAll(to2bytes(openTo));
+                        }
+                    }
+                    buffer.appendAll(to2bytes(castAttr.getUsesCount()));
+                    for (final int use : castAttr.getUses()) {
+                        buffer.appendAll(to2bytes(use));
+                    }
+                    buffer.appendAll(to2bytes(castAttr.getProvidesCount()));
+                    for (final ModuleAttribute.Provide provide : castAttr.getProvides()) {
+                        buffer.appendAll(to2bytes(provide.getProvidesIndex()));
+                        buffer.appendAll(to2bytes(provide.getProvidesCount()));
+                        for (final int index : provide.getProvides()) {
+                            buffer.appendAll(to2bytes(index));
+                        }
+                    }
+                    break;
+                }
+                case MODULE_PACKAGES: {
+                    final var castAttr = (ModulePackagesAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getPackagesCount()));
+                    for (final int packageIndex : castAttr.getPackages()) {
+                        buffer.appendAll(to2bytes(packageIndex));
+                    }
+                    break;
+                }
+                case MODULE_MAIN_CLASS: {
+                    buffer.appendAll(to2bytes(((ModuleMainClassAttribute) attribute).getMainClassIndex()));
+                    break;
+                }
+                case NEST_HOST: {
+                    buffer.appendAll(to2bytes(((NestHostAttribute) attribute).getHotClassIndex()));
+                    break;
+                }
+                case NEST_MEMBERS: {
+                    final var castAttr = (NestMembersAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getNumberOfClasses()));
+                    for (final int clz : castAttr.getClasses()) {
+                        buffer.appendAll(to2bytes(clz));
+                    }
+                    break;
+                }
+                case RECORD: {
+                    final var castAttr = (RecordAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getComponentCount()));
+                    for (final RecordAttribute.RecordComponentInfo comp : castAttr.getRecordComponents()) {
+                        buffer.appendAll(to2bytes(comp.getRecordComponentNameIndex()));
+                        buffer.appendAll(to2bytes(comp.getDescriptorIndex()));
+                        buffer.appendAll(to2bytes(comp.getAttributesCount()));
+                        writeRecordCompAttribute(comp.getAttributeInfos());
+                    }
+                    break;
+                }
+                case PERMITTED_SUBCLASSES: {
+                    final var castAttr = (PermittedSubclassesAttribute) attribute;
+                    buffer.appendAll(to2bytes(castAttr.getNumberOfClasses()));
+                    for (final int index : castAttr.getClasses()) {
+                        buffer.appendAll(to2bytes(index));
+                    }
+                    break;
+                }
                 case SYNTHETIC:
                 case DEPRECATED: {
                     break;
                 }
                 default:
-                    // TODO: 2022/5/27 finish other attributes.
+                    throw new IllegalTypeException("");
+            }
+        }
+    }
+
+    @SuppressWarnings({"ConstantConditions", "EnhancedSwitchMigration"})
+    protected void writeRecordCompAttribute (AttributeInfo[] attributes) throws IllegalTypeException {
+        for (final AttributeInfo attribute : attributes) {
+            buffer.appendAll(to2bytes(attribute.attributeNameIndex));
+            buffer.appendAll(to4bytes(attribute.attributeLength));
+            // get the name of attribute_info and check if illegal.
+            final String name = ((ConstUtf8Info) constPool.get(attribute.attributeNameIndex - 1)).getUtf8();
+            // why fu*king IDEA tells that the f**king condition is unreachable????
+            // and fu*k alibaba standard, why this sh*t can not support enhanced-switch sentence?
+            switch (name) {
+                case RUNTIME_INVISIBLE_ANNOTATIONS:
+                case RUNTIME_VISIBLE_ANNOTATIONS: {
+                    final var attr = (RuntimeAnnotationAttribute) attribute;
+                    buffer.appendAll(to2bytes(attr.getNumAnnotations()));
+                    for (final RuntimeAnnotationAttribute.Annotation annotation : attr.getAnnotations()) {
+                        buffer.appendAll(to2bytes(annotation.getTypeIndex()));
+                        buffer.appendAll(to2bytes(annotation.getNumElementValuePairs()));
+                        for (final RuntimeAnnotationAttribute.Annotation.ElementValuePairs elementValuePairs : annotation.elementValuePairs()) {
+                            buffer.appendAll(to2bytes(elementValuePairs.getElementNameIndex()));
+                            final var value = elementValuePairs.getElementValue();
+                            writeValue(value.getValue(), value.getTag());
+                        }
+                    }
+                    break;
+                }
+                case RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
+                case RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
+                    final var attr = (RuntimeTypeAnnotationAttribute) attribute;
+                    buffer.appendAll(to2bytes(attr.getNumAnnotations()));
+                    for (final RuntimeTypeAnnotationAttribute.TypeAnnotation typeAnnotation : attr.getTypeAnnotations()) {
+                        final byte tag = typeAnnotation.getTargetType();
+                        buffer.append(tag);
+                        final var targetPath = typeAnnotation.getTargetPath();
+                        buffer.append((byte) targetPath.getPathLength());
+                        for (final RuntimeTypeAnnotationAttribute.TypeAnnotation.TargetPath.Path path : targetPath.getPaths()) {
+                            buffer.append(path.getTypePathKind());
+                            buffer.append(path.getTypeArgumentLength());
+                        }
+                        buffer.appendAll(to2bytes(typeAnnotation.getTypeIndex()));
+                        buffer.appendAll(to2bytes(typeAnnotation.getNumberElementValuePairs()));
+                        for (final RuntimeAnnotationAttribute.Annotation.ElementValuePairs elementValuePair : typeAnnotation.getElementValuePairs()) {
+                            buffer.appendAll(to2bytes(elementValuePair.getElementNameIndex()));
+                            final var value = elementValuePair.getElementValue();
+                            writeValue(value.getValue(), value.getTag());
+                        }
+                    }
+                    break;
+                }
+                case SIGNATURE: {
+                    buffer.appendAll(to2bytes(((SignatureAttribute) attribute).getSignatureIndex()));
+                    break;
+                }
+                default:
+                    throw new IllegalTypeException("");
             }
         }
     }

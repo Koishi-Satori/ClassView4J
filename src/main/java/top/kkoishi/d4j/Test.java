@@ -79,7 +79,7 @@ public final class Test {
         rcw.fields.add(new FieldInfo(ClassReader.FIELD_ACCESS_FLAG_ACC_STATIC +
                 ClassReader.FIELD_ACCESS_FLAG_ACC_PRIVATE + ClassReader.FIELD_ACCESS_FLAG_ACC_TRANSIENT,
                 0x08, 0x0b, 0, new ArrayList<>(0)));
-        rcw.attributeInfos.add(new SourceFileAttribute(2, 2, 3));
+        rcw.attributeInfo.add(new SourceFileAttribute(2, 2, 3));
         try {
             rcw.write();
             final var bs = rcw.get();
