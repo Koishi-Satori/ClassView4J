@@ -8,6 +8,10 @@ public final class Test {
     public static StringBuilder buf = new StringBuilder();
     public static final Object LOCK = new Object();
 
+    public double d() {
+        return 0.0D;
+    }
+
     public static StringBuilder getBuf () {
         return buf;
     }
