@@ -54,7 +54,7 @@ import static top.kkoishi.d4j.ClassReader.ELEMENT_VALUE_TYPE_LONG;
 import static top.kkoishi.d4j.ClassReader.ELEMENT_VALUE_TYPE_SHORT;
 import static top.kkoishi.d4j.ClassReader.ELEMENT_VALUE_TYPE_STRING;
 
-class RawClassWriter {
+public class RawClassWriter {
     static final String CONSTANT_VALUE = "ConstantValue";
     static final String SYNTHETIC = "Synthetic";
     static final String DEPRECATED = "Deprecated";

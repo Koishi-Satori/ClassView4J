@@ -1,5 +1,14 @@
 package top.kkoishi.d4j;
 
+/**
+ * Bytecodes static class.
+ * <br>
+ * For all the compare-use instruction, when value_1 > value_2, push 1 onto
+ * the stack; and if value_1 == value_2, push 0 onto the stack;
+ * or push -1 onto the stack.
+ *
+ * @author KKoishi_
+ */
 public final class Bytecodes {
     private Bytecodes () {
         throw new IllegalArgumentException("FUCK YOU!");
@@ -392,4 +401,226 @@ public final class Bytecodes {
      * </code>
      */
     public static final byte DUP2_X2 = 0x5e;
+
+    /**
+     * Duplicate top two stack words (two values, if value_1 is not
+     * double nor long; a single value, if value_1 is double or long)
+     * <br>
+     * Stack Status:<code>{value_2, value_1} -> {value_2, value_1},
+     * {value_2, value_1}</code>
+     */
+    public static final byte DUP_2 = 0x5c;
+
+    /**
+     * Convert a float to a double.
+     * <br>
+     * Stack Status:<code>value -> result</code>
+     */
+    public static final byte F2D = (byte) 0x8d;
+
+    /**
+     * Convert a float to an integer.
+     * <br>
+     * Stack Status:<code>value -> result</code>
+     */
+    public static final byte F2I = (byte) 0x8b;
+
+    /**
+     * Convert a float to a long.
+     * <br>
+     * Stack Status:<code>value -> result</code>
+     */
+    public static final byte F2L = (byte) 0x8c;
+
+    /**
+     * Add two floats.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result</code>
+     */
+    public static final byte FADD = 0x62;
+
+    /**
+     * Load a float from an array.
+     * <br>
+     * Stack Status:<code>array_ref, index -> value</code>
+     */
+    public static final byte FALOAD = 0x30;
+
+    /**
+     * Store a float into an array.
+     * <br>
+     * Stack Status:<code>array_ref, index, value -> [empty]</code>
+     */
+    public static final byte FASTORE = 0x51;
+
+    /**
+     * Compare two floats.
+     * When one of float is NaN, push 1 to the stack.
+     * <br>
+     * Stack Status:value_1, value_2 -> result.
+     */
+    public static final byte FCMPG = (byte) 0x96;
+
+    /**
+     * Compare two floats.
+     * When one of float is NaN, push -1 to the stack.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result.</code>
+     */
+    public static final byte FCMPL = (byte) 0x95;
+
+    /**
+     * Push float value 0.0f onto the stack.
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FCONST_0 = 0x0b;
+
+    /**
+     * Push float value 1.0f onto the stack.
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FCONST_1 = 0x0c;
+
+    /**
+     * Push float value 2.0f onto the stack.
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FCONST_2 = 0x0d;
+
+    /**
+     * Divide two floats.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result</code>
+     */
+    public static final byte FDIV = 0x6e;
+
+    /**
+     * Other bytes:1, index to the local_variable_table.
+     * <br>
+     * Load a float value from local_variable_table #index.
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FLOAD = 0x17;
+
+    /**
+     * Load a float value from local_variable_table #0
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FLOAD_0 = 0x22;
+
+    /**
+     * Load a float value from local_variable_table #1
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FLOAD_1 = 0x23;
+
+    /**
+     * Load a float value from local_variable_table #2
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FLOAD_2 = 0x24;
+
+    /**
+     * Load a float value from local_variable_table #3
+     * <br>
+     * Stack Status:<code>[empty] -> value</code>
+     */
+    public static final byte FLOAD_3 = 0x25;
+
+    /**
+     * Multiply two floats and push the result onto the stack.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result</code>
+     */
+    public static final byte FMUL = 0x6a;
+
+    /**
+     * Negative a float.
+     * <br>
+     * Stack Status:<code>value -> result</code>
+     */
+    public static final byte FNEG = 0x76;
+
+    /**
+     * Get the remaining value form division of two floats.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result</code>
+     */
+    public static final byte FREM = 0x72;
+
+    /**
+     * Return a float value.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FRETURN = (byte) 0xae;
+
+    /**
+     * Other bytes:1, index of local_variable_table.
+     * <br>
+     * Store a float value into local_variable_table #index.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FSTORE = 0x38;
+
+    /**
+     * Store a float value into local_variable_table #0.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FSTORE_0 = 0x43;
+
+    /**
+     * Store a float value into local_variable_table #1.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FSTORE_1 = 0x43;
+
+    /**
+     * Store a float value into local_variable_table #2.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FSTORE_2 = 0x43;
+
+    /**
+     * Store a float value into local_variable_table #3.
+     * <br>
+     * Stack Status:<code>value -> [empty]</code>
+     */
+    public static final byte FSTORE_3 = 0x43;
+
+    /**
+     * Subtract two floats.
+     * <br>
+     * Stack Status:<code>value_1, value_2 -> result</code>
+     */
+    public static final byte FSUB = 0x66;
+
+    /**
+     * Other bytes:2bytes(b_1, b_2) represent index.
+     * <br>
+     * Get a field value of an object object_ref, where the field is identified
+     * by the field_ref in the constant_pool index(b_1 << 8 + b_2).
+     * <br>
+     * Stack Status:<code>object_ref -> value</code>
+     */
+    public static final byte GETFIELD = (byte) 0xb4;
+
+    public static final byte GETSTATIC = (byte) 0xb2;
+
+    public static final byte GOTO = (byte) 0xa7;
+
+    public static final class Instruction {
+
+    }
 }

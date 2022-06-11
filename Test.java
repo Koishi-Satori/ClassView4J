@@ -7,6 +7,7 @@ public final class Test {
     @TestAnno
     public static StringBuilder buf = new StringBuilder();
     public static final Object LOCK = new Object();
+    public static final boolean test = true;
 
     public double d() {
         return 0.0D;
