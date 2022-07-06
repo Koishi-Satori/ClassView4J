@@ -5,11 +5,11 @@ import top.kkoishi.cv4j.attr.frames.verifi.VerificationTypeInfo;
 
 import java.util.ArrayList;
 
-public final class AppendFrames extends StackMapTableAttribute.StackMapFrame {
+public final class AppendFrame extends StackMapTableAttribute.StackMapFrame {
     private final int offsetDelta;
     private final ArrayList<VerificationTypeInfo> locals;
 
-    public AppendFrames (byte frameType, int offsetDelta, ArrayList<VerificationTypeInfo> locals) {
+    public AppendFrame (byte frameType, int offsetDelta, ArrayList<VerificationTypeInfo> locals) {
         super(frameType);
         this.offsetDelta = offsetDelta;
         this.locals = locals;

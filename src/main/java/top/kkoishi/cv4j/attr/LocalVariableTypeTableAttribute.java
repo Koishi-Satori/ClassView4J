@@ -4,11 +4,14 @@ import top.kkoishi.cv4j.Attribute_info;
 
 import java.util.Arrays;
 
-public final class LocalVariableTypeAttribute extends Attribute_info {
+public final class LocalVariableTypeTableAttribute extends Attribute_info {
     private final int localVariableTypeTableLength;
     private final localVariableType[] localVariableTypeTable;
 
-    public LocalVariableTypeAttribute (int attributeNameIndex, int attributeLength, int localVariableTypeTableLength, localVariableType[] localVariableTypeTable) {
+    public LocalVariableTypeTableAttribute (int attributeNameIndex,
+                                            int attributeLength,
+                                            int localVariableTypeTableLength,
+                                            localVariableType[] localVariableTypeTable) {
         super(attributeNameIndex, attributeLength);
         this.localVariableTypeTableLength = localVariableTypeTableLength;
         this.localVariableTypeTable = localVariableTypeTable;

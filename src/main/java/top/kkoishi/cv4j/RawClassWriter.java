@@ -9,7 +9,7 @@ import top.kkoishi.cv4j.attr.ExceptionsAttribute;
 import top.kkoishi.cv4j.attr.InnerClassAttribute;
 import top.kkoishi.cv4j.attr.LineNumberTableAttribute;
 import top.kkoishi.cv4j.attr.LocalVariableTableAttribute;
-import top.kkoishi.cv4j.attr.LocalVariableTypeAttribute;
+import top.kkoishi.cv4j.attr.LocalVariableTypeTableAttribute;
 import top.kkoishi.cv4j.attr.MethodParametersAttribute;
 import top.kkoishi.cv4j.attr.ModuleAttribute;
 import top.kkoishi.cv4j.attr.ModuleMainClassAttribute;
@@ -24,7 +24,7 @@ import top.kkoishi.cv4j.attr.SignatureAttribute;
 import top.kkoishi.cv4j.attr.SourceDebugExtensionAttribute;
 import top.kkoishi.cv4j.attr.SourceFileAttribute;
 import top.kkoishi.cv4j.attr.StackMapTableAttribute;
-import top.kkoishi.cv4j.attr.frames.AppendFrames;
+import top.kkoishi.cv4j.attr.frames.AppendFrame;
 import top.kkoishi.cv4j.attr.frames.ChopFrame;
 import top.kkoishi.cv4j.attr.frames.FullFrame;
 import top.kkoishi.cv4j.attr.frames.SameFrameExtended;
@@ -334,9 +334,9 @@ public class RawClassWriter {
                     break;
                 }
                 case LOCAL_VARIABLE_TYPE_TABLE: {
-                    final var castAttr = (LocalVariableTypeAttribute) attribute;
+                    final var castAttr = (LocalVariableTypeTableAttribute) attribute;
                     buffer.appendAll(to2bytes(castAttr.getLocalVariableTypeTableLength()));
-                    for (final LocalVariableTypeAttribute.localVariableType localVariableType : castAttr.getLocalVariableTypeTable()) {
+                    for (final LocalVariableTypeTableAttribute.localVariableType localVariableType : castAttr.getLocalVariableTypeTable()) {
                         buffer.appendAll(to2bytes(localVariableType.getStartPc()));
                         buffer.appendAll(to2bytes(localVariableType.getLength()));
                         buffer.appendAll(to2bytes(localVariableType.getNameIndex()));
@@ -371,7 +371,7 @@ public class RawClassWriter {
                             case (byte) 252:
                             case (byte) 253:
                             case (byte) 254: {
-                                final var castFrame = (AppendFrames) frame;
+                                final var castFrame = (AppendFrame) frame;
                                 buffer.appendAll(to2bytes(castFrame.getOffsetDelta()));
                                 if (castFrame.getLocals().size() != (type & 0XFF) - 251) {
                                     throw new IllegalTypeException("");

@@ -10,7 +10,7 @@ import top.kkoishi.cv4j.attr.ExceptionsAttribute;
 import top.kkoishi.cv4j.attr.InnerClassAttribute;
 import top.kkoishi.cv4j.attr.LineNumberTableAttribute;
 import top.kkoishi.cv4j.attr.LocalVariableTableAttribute;
-import top.kkoishi.cv4j.attr.LocalVariableTypeAttribute;
+import top.kkoishi.cv4j.attr.LocalVariableTypeTableAttribute;
 import top.kkoishi.cv4j.attr.MethodParametersAttribute;
 import top.kkoishi.cv4j.attr.ModuleAttribute;
 import top.kkoishi.cv4j.attr.ModuleMainClassAttribute;
@@ -28,7 +28,7 @@ import top.kkoishi.cv4j.attr.SourceDebugExtensionAttribute;
 import top.kkoishi.cv4j.attr.SourceFileAttribute;
 import top.kkoishi.cv4j.attr.StackMapTableAttribute;
 import top.kkoishi.cv4j.attr.SyntheticAttribute;
-import top.kkoishi.cv4j.attr.frames.AppendFrames;
+import top.kkoishi.cv4j.attr.frames.AppendFrame;
 import top.kkoishi.cv4j.attr.frames.ChopFrame;
 import top.kkoishi.cv4j.attr.frames.FullFrame;
 import top.kkoishi.cv4j.attr.frames.SameFrame;
@@ -1007,12 +1007,12 @@ public class ClassReader implements Closeable {
                 }
                 case "LocalVariableTypeTable": {
                     final int localVariableTypeTableLength = toInt(br.read(2));
-                    final LocalVariableTypeAttribute.localVariableType[] localVariableTypeTable = new LocalVariableTypeAttribute.localVariableType[localVariableTypeTableLength];
+                    final LocalVariableTypeTableAttribute.localVariableType[] localVariableTypeTable = new LocalVariableTypeTableAttribute.localVariableType[localVariableTypeTableLength];
                     for (int j = 0; j < localVariableTypeTableLength; j++) {
-                        localVariableTypeTable[j] = new LocalVariableTypeAttribute.localVariableType(toInt(br.read(2)),
+                        localVariableTypeTable[j] = new LocalVariableTypeTableAttribute.localVariableType(toInt(br.read(2)),
                                 toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2)), toInt(br.read(2)));
                     }
-                    attributes[i] = new LocalVariableTypeAttribute(attributeNameIndex, attributeLength, localVariableTypeTableLength, localVariableTypeTable);
+                    attributes[i] = new LocalVariableTypeTableAttribute(attributeNameIndex, attributeLength, localVariableTypeTableLength, localVariableTypeTable);
                     break;
                 }
                 case "StackMapTable": {
@@ -1058,7 +1058,7 @@ public class ClassReader implements Closeable {
                 case (byte) 252:
                 case (byte) 253:
                 case (byte) 254: {
-                    frames.add(new AppendFrames(frameType, toInt(br.read(2)),
+                    frames.add(new AppendFrame(frameType, toInt(br.read(2)),
                             readVerificationTypeInfo((frameType & 0XFF) - 251)));
                     break;
                 }

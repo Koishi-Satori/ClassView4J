@@ -645,11 +645,25 @@ public final class Bytecodes {
      */
     public static final byte GETSTATIC = (byte) 0xb2;
 
+    /**
+     * Other_bytes:2bytes(b_1, b_2) represent the pos jump to.
+     * <br>
+     * Goes to another instruction at index pos(b_1 << 8 + b_2).
+     * <br>
+     * Stack Status:None change.
+     */
     public static final byte GOTO = (byte) 0xa7;
 
 
+    /**
+     * Get instruction copy by name.
+     *
+     * @param name the name of the instruction.
+     * @return copy of instruction.
+     * @throws NoSuchElementException if no such instruction.
+     */
     @SuppressWarnings("SameParameterValue")
-    static Instruction forName (String name) {
+    public static Instruction forName (String name) {
         return jvm_instructions_map.getOrDefault(name.toUpperCase(Locale.ROOT), error(name)).copy();
     }
 
@@ -657,29 +671,75 @@ public final class Bytecodes {
         throw new NoSuchElementException("There is no instruction called " + any);
     }
 
-    static Instruction forInstruction (byte instruction_code) {
+    /**
+     * Get instruction copy by its code.
+     *
+     * @param instruction_code the code of the instruction.
+     * @return copy of instruction.
+     */
+    public static Instruction forInstruction (byte instruction_code) {
         return jvm_instructions_array[instruction_code & 0xff];
     }
 
-    static int getJvm_instructions_count () {
+    public static int getJvm_instructions_count () {
         return (int) Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).count();
     }
 
-    static Instruction[] getJvm_instructions_array () {
+    public static Instruction[] getJvm_instructions_array () {
         return Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).map(Instruction::copy).toArray(Instruction[]::new);
     }
 
-    static List<Instruction> getJvm_instructions_list () {
+    public static List<Instruction> getJvm_instructions_list () {
         return Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).map(Instruction::copy).toList();
     }
 
-    static ArrayList<Byte> parseInstructions (String... names) {
+    /**
+     * Parse instructions to byte array_list.
+     *
+     * @param names instructions without other_bytes.
+     * @return bytes.
+     */
+    public static ArrayList<Byte> parseInstructions (String... names) {
         final ArrayList<Byte> res = new ArrayList<>(names.length);
         Arrays.stream(names).map(Bytecodes::forName).map(Instruction::instruction).forEach(res::add);
         return res;
     }
 
-    static boolean contains (String name) {
+    /**
+     * Parse instruction and byte to byte array_list.
+     *
+     * @param code instructions.
+     * @return bytes.
+     */
+    public static ArrayList<Byte> parseByteInstructions (String... code) {
+        final ArrayList<Byte> res = new ArrayList<>(code.length);
+        final var iterator = Arrays.stream(code).map(String::toUpperCase).iterator();
+        Instruction instruction = null;
+        while (iterator.hasNext()) {
+            final var c = iterator.next();
+            if (contains(c)) {
+                instruction = forName(c);
+                res.add(instruction.instruction);
+            } else {
+                if (instruction == null) {
+                    throw new IllegalArgumentException("The extended bytes should has its instruction.");
+                } else {
+                    try {
+                        final int count = instruction.other_bytes;
+                        for (int i = 0; i < count; i++) {
+                            final var b = Integer.parseInt(iterator.next());
+                            res.add((byte) b);
+                        }
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("The input string must be instruction or index byte.");
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
+    public static boolean contains (String name) {
         return jvm_instructions_map.containsKey(name);
     }
 
@@ -750,7 +810,8 @@ public final class Bytecodes {
                 new Instruction(F2I, "F2I", 0),
                 new Instruction(F2L, "F2L", 0),
                 new Instruction(FADD, "FADD", 0),
-                new Instruction(FALOAD, "FALOAD", 0));
+                new Instruction(FALOAD, "FALOAD", 0),
+                new Instruction(FASTORE, "FASTORE", 0));
         //TODO finish instructions.
     }
 

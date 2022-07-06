@@ -18,7 +18,7 @@ package top.kkoishi.cv4j;
 @SuppressWarnings("AlibabaClassNamingShouldBeCamel")
 public abstract class Attribute_info {
     protected final int attributeNameIndex;
-    protected final int attributeLength;
+    protected int attributeLength;
 
     public Attribute_info (int attributeNameIndex, int attributeLength) {
         this.attributeNameIndex = attributeNameIndex;
@@ -31,6 +31,10 @@ public abstract class Attribute_info {
 
     public int getAttributeLength () {
         return attributeLength;
+    }
+
+    public void setAttributeLength (int attributeLength) {
+        this.attributeLength = attributeLength;
     }
 }
 
