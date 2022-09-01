@@ -1151,7 +1151,7 @@ public final class Bytecodes {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Can not init the class instructions in <cinit> method.\n"
+            System.err.println("Can not init the class instructions in <clinit> method.\n"
                     + e.getLocalizedMessage());
             System.exit(114514);
         }
