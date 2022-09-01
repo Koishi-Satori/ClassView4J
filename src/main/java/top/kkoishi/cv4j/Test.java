@@ -8,13 +8,12 @@ import top.kkoishi.cv4j.cp.ConstFieldrefInfo;
 import top.kkoishi.cv4j.cp.ConstNameAndTypeInfo;
 import top.kkoishi.cv4j.cp.ConstUtf8Info;
 
-import java.io.BufferedInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -23,6 +22,17 @@ import java.util.List;
 public final class Test {
     public static void main (String[] args)
             throws IOException, DecompilerException {
+        //test();
+        instTest();
+    }
+
+    private static void instTest() {
+        System.out.println(Arrays.toString(Bytecodes.getJvm_instructions_names()));
+        System.out.println(Bytecodes.contains("iinc"));
+        System.out.println(Bytecodes.forName("invokevirtual"));
+    }
+
+    private static void test () throws IOException, DecompilerException {
         final ClassReader cr = new ClassReader(Files.readAllBytes(Path.of("./Test.class")));
         cr.read();
         ClassReader.report(cr);
@@ -67,11 +77,11 @@ public final class Test {
 
         // write "public illegal([Ljava/lang/String)D"
         rcw.methods.add(new MethodInfo(ClassReader.METHOD_ACCESS_FLAG_ACC_PUBLIC, 0x11, 0x0d,
-                1, new Attribute_info[] {new CodeAttribute(14, 26, 2,
+                1, new Attribute_info[]{new CodeAttribute(14, 26, 2,
                 2, 2, Bytecodes.parseInstructions("DCONST_0", "DRETURN"), 0,
-                new ArrayList<>(0), 1, new Attribute_info[] {new LineNumberTableAttribute(0x0f,
-                6, 1, new LineNumberTableAttribute.LineNumber[] {new LineNumberTableAttribute.LineNumber(
-                        0x00, 0x08)})})}));
+                new ArrayList<>(0), 1, new Attribute_info[]{new LineNumberTableAttribute(0x0f,
+                6, 1, new LineNumberTableAttribute.LineNumber[]{new LineNumberTableAttribute.LineNumber(
+                0x00, 0x08)})})}));
 
         rcw.methods.add(new MethodInfo(ClassReader.METHOD_ACCESS_FLAG_ACC_PUBLIC +
                 ClassReader.METHOD_ACCESS_FLAG_ACC_ABSTRACT, 0x11, 0x10,
@@ -100,7 +110,7 @@ public final class Test {
         } catch (RawClassWriter.IllegalTypeException e) {
             final URL url = new URL("https://www.stackoverflow.com/search?q=" + e.getMessage());
             final BufferedInputStream bis = new BufferedInputStream(url.openStream());
-            System.out.println(new String(bis.readAllBytes()));
+            System.err.println(new String(bis.readAllBytes()));
             bis.close();
             e.printStackTrace();
         }

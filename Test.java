@@ -2,6 +2,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Scanner;
 
 public final class Test {
     @TestAnno
@@ -24,6 +25,17 @@ public final class Test {
     public final void mmm () {
         for (int i = 0; i < 114514; ++i) {
             System.out.println(Test.buf);
+        }
+        switch (new Scanner(System.in).nextInt()) {
+            case 'a' : break;
+            case 'z' : {
+                System.out.println();
+                break;
+            }
+            case 'L' : {
+                System.out.println();
+            }
+            default : break;
         }
     }
 

@@ -1,6 +1,11 @@
 package top.kkoishi.cv4j;
 
+import sun.misc.Unsafe;
+
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static top.kkoishi.cv4j.ClassReader.toInt;
 
 /**
  * Bytecodes static class of this asm4j frame.
@@ -11,13 +16,24 @@ import java.util.*;
  *
  * @author KKoishi_
  */
-@SuppressWarnings({"AlibabaConstantFieldShouldBeUpperCase", "SpellCheckingInspection"})
+@SuppressWarnings({"AlibabaConstantFieldShouldBeUpperCase", "SpellCheckingInspection", "unused"})
 public final class Bytecodes {
 
     static final Instruction[] jvm_instructions_array = new Instruction[256];
 
     static final HashMap<String, Instruction> jvm_instructions_map = new HashMap<>(4 * 256);
 
+    static Unsafe getUnsafe () {
+        try {
+            final var f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    static Unsafe U = getUnsafe();
 
     /**
      * Load onto a stack reference from an array.
@@ -113,12 +129,12 @@ public final class Bytecodes {
     /**
      * Store a reference into local variable 2
      */
-    public static final byte ASTORE_2 = 0x0d;
+    public static final byte ASTORE_2 = 0x4d;
 
     /**
      * Store a reference into local variable 3
      */
-    public static final byte ASTORE_3 = 0x0e;
+    public static final byte ASTORE_3 = 0x4e;
 
     /**
      * Throws an error or exception (notice that the
@@ -191,7 +207,7 @@ public final class Bytecodes {
      * <br>
      * Stack Status:value->result
      */
-    public static final byte D2I = (byte) 0x8c;
+    public static final byte D2I = (byte) 0x8e;
 
     /**
      * Convert a double to a long.
@@ -422,15 +438,6 @@ public final class Bytecodes {
     public static final byte DUP2_X2 = 0x5e;
 
     /**
-     * Duplicate top two stack words (two values, if value_1 is not
-     * double nor long; a single value, if value_1 is double or long)
-     * <br>
-     * Stack Status:<code>{value_2, value_1} -> {value_2, value_1},
-     * {value_2, value_1}</code>
-     */
-    public static final byte DUP_2 = 0x5c;
-
-    /**
      * Convert a float to a double.
      * <br>
      * Stack Status:<code>value -> result</code>
@@ -602,21 +609,21 @@ public final class Bytecodes {
      * <br>
      * Stack Status:<code>value -> [empty]</code>
      */
-    public static final byte FSTORE_1 = 0x43;
+    public static final byte FSTORE_1 = 0x44;
 
     /**
      * Store a float value into local_variable_table #2.
      * <br>
      * Stack Status:<code>value -> [empty]</code>
      */
-    public static final byte FSTORE_2 = 0x43;
+    public static final byte FSTORE_2 = 0x45;
 
     /**
      * Store a float value into local_variable_table #3.
      * <br>
      * Stack Status:<code>value -> [empty]</code>
      */
-    public static final byte FSTORE_3 = 0x43;
+    public static final byte FSTORE_3 = 0x46;
 
     /**
      * Subtract two floats.
@@ -654,6 +661,284 @@ public final class Bytecodes {
      */
     public static final byte GOTO = (byte) 0xa7;
 
+    /**
+     * Other_bytes:4bytes(b_1...b_4) represent the pos jump to.
+     * <br>
+     * Goes to another instruction at index pos
+     * (b_1 << 24 + b_2 << 16 + b_3 << 8 + b_4).
+     * <br>
+     * Stack Status:None change.
+     */
+    public static final byte GOTO_W = (byte) 0xc8;
+
+    /**
+     * Convert an int to byte.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2B = (byte) 0x91;
+
+    /**
+     * Convert an int to char.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2C = (byte) 0x92;
+
+    /**
+     * Convert an int to double.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2D = (byte) 0x87;
+
+    /**
+     * Convert an int to float.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2F = (byte) 0x86;
+
+    /**
+     * Convert an int to long.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2L = (byte) 0x85;
+
+    /**
+     * Convert an int to short.
+     * <br>
+     * Stack Status:value -> result
+     */
+    public static final byte I2S = (byte) 0x93;
+
+
+    public static final byte IADD = 0x60;
+
+    public static final byte IALOAD = 0x2e;
+
+    public static final byte IAND = 0x7e;
+
+    public static final byte IASTORE = 0x4f;
+
+    public static final byte ICONST_M1 = 0x02;
+
+    public static final byte ICONST_0 = 0x03;
+
+    public static final byte ICONST_1 = 0x04;
+
+    public static final byte ICONST_2 = 0x05;
+
+    public static final byte ICONST_3 = 0x06;
+
+    public static final byte ICONST_4 = 0x07;
+
+    public static final byte ICONST_5 = 0x08;
+
+    public static final byte IDIV = 0x6c;
+
+    public static final byte IF_ACMPEQ = (byte) 0xa5;
+
+    public static final byte IF_ACMPNE = (byte) 0xa6;
+
+    public static final byte IF_ICMPEQ = (byte) 0x9f;
+
+    public static final byte IF_ICMPNE = (byte) 0xa0;
+
+    public static final byte IF_ICMPLT = (byte) 0xa1;
+
+    public static final byte IF_ICMPGE = (byte) 0xa2;
+
+    public static final byte IF_ICMPGT = (byte) 0xa3;
+
+    public static final byte IF_ICMPLE = (byte) 0xa4;
+
+    public static final byte IFEQ = (byte) 0x99;
+
+    public static final byte IFNE = (byte) 0x9a;
+
+    public static final byte IFLT = (byte) 0x9b;
+
+    public static final byte IFGE = (byte) 0x9c;
+
+    public static final byte IFGT = (byte) 0x9d;
+
+    public static final byte IFLE = (byte) 0x9e;
+
+    public static final byte IFNONNULL = (byte) 0xc7;
+
+    public static final byte IFNULL = (byte) 0xc6;
+
+    public static final byte IINC = (byte) 0x84;
+
+    public static final byte ILOAD = (byte) 0x15;
+
+    public static final byte ILOAD_0 = 0x1a;
+
+    public static final byte ILOAD_1 = 0x1b;
+
+    public static final byte ILOAD_2 = 0x1c;
+
+    public static final byte ILOAD_3 = 0x1d;
+
+    public static final byte IMUL = 0x68;
+
+    public static final byte INEG = 0x74;
+
+    public static final byte INSTANCEOF = (byte) 0xc1;
+
+    public static final byte INVOKEDYNAMIC = (byte) 0xba;
+
+    public static final byte INVOKEINTERFACE = (byte) 0xb9;
+
+    public static final byte INVOKESPECIAL = (byte) 0xb8;
+
+    public static final byte INVOKESTATIC = (byte) 0xb7;
+
+    public static final byte INVOKEVIRTUAL = (byte) 0xb6;
+
+    public static final byte IOR = (byte) 0x80;
+
+    public static final byte IREM = (byte) 0x70;
+
+    public static final byte IRETURN = (byte) 0xac;
+
+    public static final byte ISHL = (byte) 0x78;
+
+    public static final byte ISHR = (byte) 0x7a;
+
+    public static final byte ISTORE = 0x36;
+
+    public static final byte ISTORE_0 = 0x3b;
+
+    public static final byte ISTORE_1 = 0x3c;
+
+    public static final byte ISTORE_2 = 0x3d;
+
+    public static final byte ISTORE_3 = 0x3e;
+
+    public static final byte ISUB = 0x64;
+
+    public static final byte IUSHR = 0x7c;
+
+    public static final byte IXOR = (byte) 0x82;
+
+    public static final byte JSR = (byte) 0xa8;
+
+    public static final byte JSR_W = (byte) 0xc9;
+
+    public static final byte L2D = (byte) 0x8a;
+
+    public static final byte L2F = (byte) 0x89;
+
+    public static final byte L2I = (byte) 0x88;
+
+    public static final byte LADD = 0x61;
+
+    public static final byte LALOAD = 0x2f;
+
+    public static final byte LAND = 0x7f;
+
+    public static final byte LASRORE = 0x50;
+
+    public static final byte LCMP = (byte) 0x94;
+
+    public static final byte LCONST_0 = 0x09;
+
+    public static final byte LCONST_1 = 0x0a;
+
+    public static final byte LDC = 0x12;
+
+    public static final byte LDC_W = 0x13;
+
+    public static final byte LDC2_W = 0x14;
+
+    public static final byte LDIV = 0x6d;
+
+    public static final byte LLOAD = 0x16;
+
+    public static final byte LLOAD_0 = 0x1e;
+
+    public static final byte LLOAD_1 = 0x1f;
+
+    public static final byte LLOAD_2 = 0x20;
+
+    public static final byte LLOAD_3 = 0x21;
+
+    public static final byte LMUL = 0x69;
+
+    public static final byte LNEG = 0x75;
+
+    public static final byte LOOKUPSWITCH = (byte) 0xab;
+
+    public static final byte LOR = (byte) 0x81;
+
+    public static final byte LREM = 0x71;
+
+    public static final byte LRETURN = (byte) 0xad;
+
+    public static final byte LSHL = 0x79;
+
+    public static final byte LSHR = 0x7b;
+
+    public static final byte LSTORE = 0x37;
+
+    public static final byte LSTORE_0 = 0x3f;
+
+    public static final byte LSTORE_1 = 0x40;
+
+    public static final byte LSTORE_2 = 0x41;
+
+    public static final byte LSTORE_3 = 0x42;
+
+    public static final byte LSUB = 0x65;
+
+    public static final byte LUSHR = 0x7d;
+
+    public static final byte LXOR = (byte) 0x83;
+
+    public static final byte MONITORENTER = (byte) 0xc3;
+
+    public static final byte MONITOREXIT = (byte) 0xc2;
+
+    public static final byte MULTIANEWARRAY = (byte) 0xc5;
+
+    public static final byte NEW = (byte) 0xbb;
+
+    public static final byte NEWARRAY = (byte) 0xbc;
+
+    public static final byte NOP = 0x00;
+
+    public static final byte POP = 0x57;
+
+    public static final byte POP2 = 0x58;
+
+    public static final byte PUTFIELD = (byte) 0xb5;
+
+    public static final byte PUTSTATIC = (byte) 0xb3;
+
+    public static final byte RET = (byte) 0xa9;
+
+    public static final byte RETURN = (byte) 0xb1;
+
+    public static final byte SALOAD = 0x35;
+
+    public static final byte SASTORE = 0x56;
+
+    public static final byte SIPUSH = 0x11;
+
+    public static final byte SWAP = 0x5f;
+
+    public static final byte TABLESWITCH = (byte) 0xaa;
+
+    public static final byte WIDE = (byte) 0xc4;
+
+    public static final byte BREAKPOINT = (byte) 0xca;
+
+    public static final byte IMPDEP1 = (byte) 0xfe;
+
+    public static final byte IMPDEP2 = (byte) 0xff;
 
     /**
      * Get instruction copy by name.
@@ -664,7 +949,11 @@ public final class Bytecodes {
      */
     @SuppressWarnings("SameParameterValue")
     public static Instruction forName (String name) {
-        return jvm_instructions_map.getOrDefault(name.toUpperCase(Locale.ROOT), error(name)).copy();
+        final var ret = jvm_instructions_map.get(name.toUpperCase(Locale.ROOT));
+        if (ret != null) {
+            return ret.copy();
+        }
+        return error(name);
     }
 
     static Instruction error (String any) {
@@ -693,6 +982,14 @@ public final class Bytecodes {
         return Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).map(Instruction::copy).toList();
     }
 
+    public static List<String> getJvm_instructions_nameList() {
+        return Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).map(Instruction::name).collect(Collectors.toList());
+    }
+
+    public static String[] getJvm_instructions_names() {
+        return Arrays.stream(jvm_instructions_array).filter(Objects::nonNull).map(Instruction::name).toArray(String[]::new);
+    }
+
     /**
      * Parse instructions to byte array_list.
      *
@@ -711,15 +1008,91 @@ public final class Bytecodes {
      * @param code instructions.
      * @return bytes.
      */
+    @SuppressWarnings("EnhancedSwitchMigration")
     public static ArrayList<Byte> parseByteInstructions (String... code) {
         final ArrayList<Byte> res = new ArrayList<>(code.length);
-        final var iterator = Arrays.stream(code).map(String::toUpperCase).iterator();
+        final var iterator = Arrays.stream(code)
+                .map(String::toUpperCase)
+                .map(s -> s.replaceAll("^0X", ""))
+                .iterator();
         Instruction instruction = null;
         while (iterator.hasNext()) {
             final var c = iterator.next();
             if (contains(c)) {
                 instruction = forName(c);
                 res.add(instruction.instruction);
+                if (instruction.other_bytes > 0) {
+                    for (int i = 0; i < instruction.other_bytes; i++) {
+                        res.add(Byte.parseByte(iterator.next()));
+                    }
+                } else if (instruction.other_bytes < 0) {
+                    int count;
+                    final var temp = new byte[4];
+                    // Calculate the bytes count of special instructions which
+                    // have variable other_bytes count.
+                    // The tableswitch and lookupswitch instruction should contain
+                    // 0~3 bytes padding to make sure the start indexes of default_index,
+                    // other indexes and offsets are the multiple of four.
+                    //
+                    // Tableswitch: default(u4, the default brance jump offset),
+                    // high(u4), low(u4), offsets[high -low + 1]. Every offset
+                    // contains jump_offset(u4).
+                    //
+                    // Lookupswitch: default(u4, the default brance jump offset),
+                    // npairs_count(u4), npair[npairs_count]. Every npair contains
+                    // switch_value and jump_offset(all in u4).
+                    //
+                    // Wide: opcode(u1) + other_bytes.
+                    // opcode=iinc->4 other_bytes
+                    // iload, fload, aload, lload, dload, istore, fstore, astore,
+                    // lstore, dstore, or ret: 2 other_bytes
+                    switch (instruction.instruction) {
+                        case TABLESWITCH: {
+                            count = 4 - res.size() % 4 + 4;
+                            for (int i = 0; i < count; i++) {
+                                res.add(Byte.parseByte(iterator.next()));
+                            }
+                            // Get high and low bits.
+                            for (int i = 0; i < 4; i++) {
+                                res.add(temp[i] = Byte.parseByte(iterator.next()));
+                            }
+                            count = toInt(temp) + 1;
+                            for (int i = 0; i < 4; i++) {
+                                res.add(temp[i] = Byte.parseByte(iterator.next()));
+                            }
+                            count = (count - toInt(temp)) * 4;
+                            for (int i = 0; i < count; i++) {
+                                res.add(Byte.parseByte(iterator.next()));
+                            }
+                            break;
+                        }
+                        case LOOKUPSWITCH: {
+                            count = 4 - res.size() % 4 + 4;
+                            for (int i = 0; i < count; i++) {
+                                res.add(Byte.parseByte(iterator.next()));
+                            }
+                            // Get the npairs count
+                            for (int i = 0; i < 4; i++) {
+                                res.add(temp[i] = Byte.parseByte(iterator.next()));
+                            }
+                            count = toInt(temp) * 8;
+                            for (int i = 0; i < count; i++) {
+                                res.add(Byte.parseByte(iterator.next()));
+                            }
+                            break;
+                        }
+                        case WIDE: {
+                            final var opcode = Byte.parseByte(iterator.next());
+                            res.add(opcode);
+                            count = opcode == IINC ? 4 : 2;
+                            for (int i = 0; i < count; i++) {
+                                res.add(Byte.parseByte(iterator.next()));
+                            }
+                            break;
+                        }
+                        default: throw new RuntimeException("This should not happen.");
+                    }
+                }
             } else {
                 if (instruction == null) {
                     throw new IllegalArgumentException("The extended bytes should has its instruction.");
@@ -740,83 +1113,59 @@ public final class Bytecodes {
     }
 
     public static boolean contains (String name) {
-        return jvm_instructions_map.containsKey(name);
-    }
-
-
-    @SuppressWarnings("unused")
-    private static void none (Object... any) {
-        // do nothing.
+        return jvm_instructions_map.containsKey(name.toUpperCase(Locale.ROOT));
     }
 
     static {
-        // class init.
-        none(new Instruction(AALOAD, "AALOAD", 0),
-                new Instruction(AASTORE, "AASTORE", 0),
-                new Instruction(ACONST_NULL, "ACONST_NULL", 0),
-                new Instruction(ALOAD, "ALOAD", 1),
-                new Instruction(ALOAD_0, "ALOAD_0", 0),
-                new Instruction(ALOAD_1, "ALOAD_1", 0),
-                new Instruction(ALOAD_2, "ALOAD_2", 0),
-                new Instruction(ALOAD_3, "ALOAD_3", 0),
-                new Instruction(ANEWARRAY, "ANEWARRAY", 2),
-                new Instruction(ARETURN, "ARETURN", 0),
-                new Instruction(ARRAYLENGTH, "ARRAYLENGTH", 0),
-                new Instruction(ASTORE, "ASTORE", 1),
-                new Instruction(ASTORE_0, "ASTORE_0", 0),
-                new Instruction(ASTORE_1, "ASTORE_1", 0),
-                new Instruction(ASTORE_2, "ASTORE_2", 0),
-                new Instruction(ASTORE_3, "ASTORE_3", 0),
-                new Instruction(ATHROW, "ATHROW", 0),
-                new Instruction(BALOAD, "BALOAD", 0),
-                new Instruction(BASTORE, "BASTORE", 0),
-                new Instruction(BIPUSH, "BIPUSH", 1),
-                new Instruction(CALOAD, "CALOAD", 0),
-                new Instruction(CASTORE, "CASTORE", 0),
-                new Instruction(CHECKCAST, "CHECKCAST", 2),
-                new Instruction(D2F, "D2F", 0),
-                new Instruction(D2I, "D2I", 0),
-                new Instruction(D2L, "D2L", 0),
-                new Instruction(DADD, "DADD", 0),
-                new Instruction(DALOAD, "DALOAD", 0),
-                new Instruction(DASTORE, "DASTORE", 0),
-                new Instruction(DCMPG, "DCMPG", 0),
-                new Instruction(DCMPL, "DCMPL", 0),
-                new Instruction(DCONST_0, "DCONST_0", 0),
-                new Instruction(DCONST_1, "DCONST_1", 0),
-                new Instruction(DDIV, "DDIV", 0),
-                new Instruction(DLOAD, "DLOAD", 1),
-                new Instruction(DLOAD_0, "DLOAD_0", 0),
-                new Instruction(DLOAD_1, "DLOAD_1", 0),
-                new Instruction(DLOAD_2, "DLOAD_2", 0),
-                new Instruction(DLOAD_3, "DLOAD_3", 0),
-                new Instruction(DMUL, "DMUL", 0),
-                new Instruction(DNEG, "DNEG", 0),
-                new Instruction(DREM, "DREM", 0),
-                new Instruction(DRETURN, "DRETURN", 0),
-                new Instruction(DSTORE, "DSTORE", 1),
-                new Instruction(DSTORE_0, "DSTORE_0", 0),
-                new Instruction(DSTORE_1, "DSTORE_1", 0),
-                new Instruction(DSTORE_2, "DSTORE_2", 0),
-                new Instruction(DSTORE_3, "DSTORE_3", 0),
-                new Instruction(DSUB, "DSUB", 0),
-                new Instruction(DUP, "DUP", 0),
-                new Instruction(DUP_X1, "DUP_X1", 0),
-                new Instruction(DUP_X2, "DUP_X2", 0),
-                new Instruction(DUP2, "DUP2", 0),
-                new Instruction(DUP2_X1, "DUP2_X1", 0),
-                new Instruction(DUP2_X2, "DUP2_X2", 0),
-                new Instruction(F2D, "F2D", 0),
-                new Instruction(F2I, "F2I", 0),
-                new Instruction(F2L, "F2L", 0),
-                new Instruction(FADD, "FADD", 0),
-                new Instruction(FALOAD, "FALOAD", 0),
-                new Instruction(FASTORE, "FASTORE", 0));
-        //TODO finish instructions.
+        // Class init.
+        // Init a temp-array to store other_bytes value.
+        final byte B1 = 0x01;
+        final byte B2 = 0x02;
+        final byte B4 = 0x04;
+        final var temp = new byte[256];
+        setCount(temp,
+                ALOAD, B1, ASTORE, B1, ANEWARRAY, B2, BIPUSH, B1, CHECKCAST, B2, DLOAD, B1, DSTORE, B1,
+                FLOAD, B1, FSTORE, B2, GETFIELD, B2, GETSTATIC, B2, GOTO, B2, GOTO_W, B4, IF_ACMPEQ, B2,
+                IF_ACMPNE, B2, IF_ICMPEQ, B2, IF_ICMPGE, B2, IF_ICMPGT, B2, IF_ICMPLE, B2, IF_ICMPLT, B2,
+                IF_ICMPNE, B2, IFEQ, B2, IFGE, B2, IFGT, B2, IFLE, B2, IFLT, B2, IFNE, B2, IFNONNULL, B2,
+                IFNULL, B2, IINC, B2, IALOAD, B1, INSTANCEOF, B2, INVOKEDYNAMIC, B4, INVOKEINTERFACE, B4,
+                INVOKESPECIAL, B2, INVOKESTATIC, B2, INVOKEVIRTUAL, B2, ISTORE, B1, JSR, B2, JSR_W, B4,
+                LDC, B1, LDC2_W, B2, LDC_W, B2, LLOAD, B1, LOOKUPSWITCH, (byte) -1, ISTORE, B1,
+                MULTIANEWARRAY, (byte) 0x03, NEW, B2, NEWARRAY, B1, PUTFIELD, B2, PUTSTATIC, B2, RET, B1,
+                SIPUSH, B2, TABLESWITCH, (byte) -1, WIDE, (byte) -1);
+        // Use reflection to get all the "static byte" and
+        // invoke Instruction::<init> method.
+        try {
+            for (final var f : Bytecodes.class.getDeclaredFields()) {
+                // Check if the field is static.
+                if ((f.getModifiers() & 0x08) != 0x00) {
+                    // Check if type of the field is byte.
+                    if (f.getType() == byte.class) {
+                        // Use sun.misc.Unsafe to get value faster,
+                        // then add the instruction.
+                        final var val = (byte) f.get(null);
+                        final var inst = new Instruction(val, f.getName(), temp[val & 0xff]);
+                        jvm_instructions_array[val & 0xff] = inst;
+                        jvm_instructions_map.put(inst.name, inst);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Can not init the class instructions in <cinit> method.\n"
+                    + e.getLocalizedMessage());
+            System.exit(114514);
+        }
+    }
+
+    private static void setCount (byte[] arr, byte... instAndValues) {
+        final var len = instAndValues.length;
+        for (int i = 0; i < len; i++) {
+            arr[instAndValues[i++] & 0xff] = instAndValues[i];
+        }
     }
 
     private Bytecodes () {
-        throw new IllegalArgumentException("FUCK YOU FOR TRY TO INITIALIZE AN INSTANCE!");
+        throw new IllegalArgumentException("This class should not be initialized.");
     }
 
     public static final class Instruction {
@@ -827,11 +1176,12 @@ public final class Bytecodes {
         final int other_bytes;
 
         private Instruction (byte instruction, String name, int otherBytes) {
+            if (jvm_instructions_array[instruction & 0xff] != null) {
+                throw new ExceptionInInitializerError("The instruction" + jvm_instructions_array[instruction & 0xff] + "has existed.");
+            }
             this.instruction = instruction;
             this.name = name;
             this.other_bytes = otherBytes;
-            Bytecodes.jvm_instructions_array[instruction & 0xff] = this;
-            Bytecodes.jvm_instructions_map.put(name, this);
         }
 
         public byte instruction () {
@@ -847,7 +1197,16 @@ public final class Bytecodes {
         }
 
         private Instruction copy () {
-            return new Instruction(this.instruction, this.name, other_bytes);
+            try {
+                final var cpy = (Instruction) U.allocateInstance(Instruction.class);
+                for (final var f : Instruction.class.getDeclaredFields()) {
+                    U.getAndSetObject(cpy, U.objectFieldOffset(f), f.get(this));
+                }
+                return cpy;
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+                throw new ExceptionInInitializerError();
+            }
         }
 
         @Override
