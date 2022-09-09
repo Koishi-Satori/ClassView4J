@@ -1002,8 +1002,14 @@ public final class Bytecodes {
         return res;
     }
 
+    public static ArrayList<Byte> parseInstructions(Object... nameAndBytes) {
+        final ArrayList<Byte> res = new ArrayList<>(nameAndBytes.length);
+        final var iterator = Arrays.stream(nameAndBytes).iterator();
+        return res;
+    }
+
     /**
-     * Parse instruction and byte to byte array_list.
+     * Parse instructions and bytes to {@code ArrayList<Byte>} instance.
      *
      * @param code instructions.
      * @return bytes.

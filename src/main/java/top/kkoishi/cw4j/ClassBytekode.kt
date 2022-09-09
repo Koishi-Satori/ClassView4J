@@ -10,8 +10,8 @@ import top.kkoishi.cv4j.attr.frames.verifi.VerificationTypeInfo
 import java.io.InvalidClassException
 import java.util.ArrayList
 
-class ClassBytekodeFactory {
-    companion object Utils {
+class ClassBytekode {
+    internal companion object Utils {
         @JvmStatic
         internal fun countCodeAttributesLength(instance: CodeAttribute): Int {
             var c = 19 + instance.codeLength + 8 * instance.exceptionTableLength

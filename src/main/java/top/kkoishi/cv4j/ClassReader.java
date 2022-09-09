@@ -1680,7 +1680,7 @@ public class ClassReader implements Closeable {
                 }
                 case ConstPoolInfo.CONSTANT_UTF8_INFO: {
                     final var bits = br.read(2);
-                    final var ba = calculateUtf8Length(toInt(bits));
+                    final var ba = br.read(toInt(bits));
                     cpInfo.add(new ConstUtf8Info(ba));
                     break;
                 }

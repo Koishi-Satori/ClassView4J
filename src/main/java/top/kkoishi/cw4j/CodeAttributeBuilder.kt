@@ -34,7 +34,7 @@ data class FullInstruction(val instruction: Bytecodes.Instruction, val other_byt
 }
 
 @Suppress("NOTHING_TO_INLINE")
-abstract class CodeAttributeFactory internal constructor(
+abstract class CodeAttributeBuilder internal constructor(
     private val max_stack: Int,
     private val max_locals: Int,
     private val instructions: ArrayDeque<FullInstruction>,
@@ -55,7 +55,7 @@ abstract class CodeAttributeFactory internal constructor(
 
         @JvmStatic
         @Suppress("unused")
-        internal val L = accessLookup(CodeAttributeFactory::class.java)
+        internal val L = accessLookup(CodeAttributeBuilder::class.java)
 
         @JvmStatic
         internal inline fun accessLookup(callerClass: Class<*>): MethodHandles.Lookup {
@@ -66,7 +66,7 @@ abstract class CodeAttributeFactory internal constructor(
 
         @JvmStatic
         private inline fun accessOffset(name: String): Long =
-            U.objectFieldOffset(CodeAttributeFactory::class.java.getDeclaredField(name))
+            U.objectFieldOffset(CodeAttributeBuilder::class.java.getDeclaredField(name))
 
         @JvmStatic
         private val offset_max_stack = accessOffset("max_stack")
@@ -92,7 +92,7 @@ abstract class CodeAttributeFactory internal constructor(
             code_exceptions: ArrayDeque<CodeAttribute.CodeException> = ArrayDeque(),
             code_attributes: ArrayDeque<Attribute_info> = ArrayDeque(),
         ) =
-            object : CodeAttributeFactory(max_stack, max_locals, instructions, code_exceptions, code_attributes) {
+            object : CodeAttributeBuilder(max_stack, max_locals, instructions, code_exceptions, code_attributes) {
                 override fun attributeIndex(): Int = name_Index
             }
     }
@@ -105,7 +105,7 @@ abstract class CodeAttributeFactory internal constructor(
 
     fun maxLocals() = max_locals
 
-    fun addInstruction(instruction: FullInstruction): CodeAttributeFactory {
+    fun addInstruction(instruction: FullInstruction): CodeAttributeBuilder {
         this.instructions.add(instruction)
         return this
     }
@@ -113,7 +113,7 @@ abstract class CodeAttributeFactory internal constructor(
     inline fun addInstruction(instruction: Bytecodes.Instruction, other_bytes: ByteArray) = addInstruction(
         FullInstruction(instruction, other_bytes))
 
-    fun setInstruction(index: Int, instruction: FullInstruction): CodeAttributeFactory {
+    fun setInstruction(index: Int, instruction: FullInstruction): CodeAttributeBuilder {
         this.instructions[index] = instruction
         return this
     }
@@ -121,22 +121,22 @@ abstract class CodeAttributeFactory internal constructor(
     inline fun setInstruction(index: Int, instruction: Bytecodes.Instruction, other_bytes: ByteArray) =
         setInstruction(index, FullInstruction(instruction, other_bytes))
 
-    fun addCodeExceptions(code_exception: CodeAttribute.CodeException): CodeAttributeFactory {
+    fun addCodeExceptions(code_exception: CodeAttribute.CodeException): CodeAttributeBuilder {
         this.code_exceptions.add(code_exception)
         return this
     }
 
-    fun setCodeExceptions(index: Int, code_exception: CodeAttribute.CodeException): CodeAttributeFactory {
+    fun setCodeExceptions(index: Int, code_exception: CodeAttribute.CodeException): CodeAttributeBuilder {
         this.code_exceptions[index] = code_exception
         return this
     }
 
-    fun addCodeAttributes(code_attribute: Attribute_info): CodeAttributeFactory {
+    fun addCodeAttributes(code_attribute: Attribute_info): CodeAttributeBuilder {
         this.code_attributes.add(code_attribute)
         return this
     }
 
-    fun setCodeAttributes(index: Int, code_attribute: Attribute_info): CodeAttributeFactory {
+    fun setCodeAttributes(index: Int, code_attribute: Attribute_info): CodeAttributeBuilder {
         this.code_attributes[index] = code_attribute
         return this
     }
@@ -164,7 +164,7 @@ abstract class CodeAttributeFactory internal constructor(
             exceptions,
             code_attributes.size,
             attributes)
-        code_attribute.attributeLength = ClassBytekodeFactory.countCodeAttributesLength(code_attribute)
+        code_attribute.attributeLength = ClassBytekode.countCodeAttributesLength(code_attribute)
         return code_attribute
     }
 
@@ -203,7 +203,7 @@ abstract class CodeAttributeFactory internal constructor(
             attributes.size,
             attributes
         )
-        code_attribute.attributeLength = ClassBytekodeFactory.Utils.countCodeAttributesLength(code_attribute)
+        code_attribute.attributeLength = ClassBytekode.Utils.countCodeAttributesLength(code_attribute)
         return code_attribute
     }
 }
